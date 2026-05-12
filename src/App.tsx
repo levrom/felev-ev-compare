@@ -707,7 +707,6 @@ function NumberField({
         {help ? <TooltipButton help={help} label={label} /> : null}
       </div>
       <div className="inputWrap">
-        {prepend ?? null}
         {optionalToggle ? (
           <label className="fieldToggleControl" htmlFor={toggleId}>
             <input
@@ -723,6 +722,7 @@ function NumberField({
             </span>
           </label>
         ) : null}
+        {prepend ?? null}
         <input
           id={inputId}
           type="number"
@@ -840,13 +840,19 @@ function InlineToggleField<T extends string>({
   value,
   options,
   onChange,
+  disabled,
 }: {
   value: T;
   options: { value: T; label: string }[];
   onChange: (value: T) => void;
+  disabled?: boolean;
 }) {
   return (
-    <div className="inlineModeToggleGroup" role="group" aria-label="Price mode">
+    <div
+      className={`inlineModeToggleGroup${disabled ? " isDisabled" : ""}`}
+      role="group"
+      aria-label="Price mode"
+    >
       {options.map((option) => {
         const active = option.value === value;
         return (
@@ -855,6 +861,7 @@ function InlineToggleField<T extends string>({
             type="button"
             className={`inlineModeToggleButton${active ? " isActive" : ""}`}
             aria-pressed={active}
+            disabled={disabled}
             onClick={() => onChange(option.value)}
           >
             {option.label}
@@ -1601,6 +1608,7 @@ function ScenarioEditor({
                         car: { ...selected.car, salePriceMode },
                       })
                     }
+                    disabled={!selected.car.salePriceNetEnabled}
                   />
                 }
                 help={ui.help.salePriceNet}

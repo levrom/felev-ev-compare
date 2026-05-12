@@ -505,6 +505,14 @@ button:disabled {
   outline-offset: -2px;
 }
 
+.inlineModeToggleGroup.isDisabled {
+  opacity: 0.55;
+}
+
+.inlineModeToggleButton:disabled {
+  cursor: not-allowed;
+}
+
 .field input,
 .field select {
   width: 100%;
