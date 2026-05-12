@@ -326,60 +326,6 @@ button:disabled {
   font-weight: 500;
 }
 
-.breakdownValue::after,
-.summaryMetricValue::after {
-  content: attr(data-tooltip);
-  position: absolute;
-  z-index: 40;
-  left: 50%;
-  bottom: calc(100% + 8px);
-  transform: translateX(-50%);
-  width: max-content;
-  max-width: min(320px, 70vw);
-  padding: 8px 10px;
-  border: 1px solid #d6cdc3;
-  border-radius: 7px;
-  background: #1c1917;
-  color: #ffffff;
-  font-size: 12px;
-  line-height: 1.35;
-  white-space: pre-line;
-  box-shadow: 0 2px 8px rgba(28, 25, 23, 0.14);
-  opacity: 0;
-  pointer-events: none;
-  visibility: hidden;
-}
-
-.breakdownValue::before,
-.summaryMetricValue::before {
-  content: "";
-  position: absolute;
-  z-index: 41;
-  left: 50%;
-  bottom: calc(100% + 3px);
-  width: 8px;
-  height: 8px;
-  border-right: 1px solid #d6cdc3;
-  border-bottom: 1px solid #d6cdc3;
-  background: #1c1917;
-  transform: translateX(-50%) rotate(45deg);
-  opacity: 0;
-  pointer-events: none;
-  visibility: hidden;
-}
-
-.breakdownValue:hover::after,
-.breakdownValue:hover::before,
-.breakdownValue:focus-visible::after,
-.breakdownValue:focus-visible::before,
-.summaryMetricValue:hover::after,
-.summaryMetricValue:hover::before,
-.summaryMetricValue:focus-visible::after,
-.summaryMetricValue:focus-visible::before {
-  opacity: 1;
-  visibility: visible;
-}
-
 .breakdownValue:hover,
 .breakdownValue:focus-visible,
 .summaryMetricValue:hover,
@@ -391,6 +337,52 @@ button:disabled {
 .summaryMetricValue:focus-visible {
   outline: 2px solid var(--accent-outline);
   outline-offset: 2px;
+}
+
+.floatingTooltip {
+  position: fixed;
+  z-index: 2000;
+  width: max-content;
+  max-width: min(320px, calc(100vw - 24px));
+  padding: 8px 10px;
+  border: 1px solid #d6cdc3;
+  border-radius: 7px;
+  background: #1c1917;
+  color: #ffffff;
+  font-size: 12px;
+  line-height: 1.35;
+  white-space: pre-line;
+  box-shadow: 0 2px 8px rgba(28, 25, 23, 0.14);
+  pointer-events: none;
+}
+
+.floatingTooltip::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  background: #1c1917;
+  border-right: 1px solid #d6cdc3;
+  border-bottom: 1px solid #d6cdc3;
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.floatingTooltip.placementTop {
+  transform: translateX(-50%) translateY(-100%);
+}
+
+.floatingTooltip.placementBottom {
+  transform: translateX(-50%);
+}
+
+.floatingTooltip.placementTop::after {
+  bottom: -5px;
+}
+
+.floatingTooltip.placementBottom::after {
+  top: -5px;
+  transform: translateX(-50%) rotate(225deg);
 }
 
 .workspace {
