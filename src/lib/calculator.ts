@@ -132,6 +132,9 @@ export type ScenarioResult = {
   totalGewstAddbackBase: number;
   totalGewstAddback: number;
   gewstAddbackRate: number;
+  totalKstSaving: number;
+  totalSoliSaving: number;
+  totalGewstSaving: number;
   totalTaxSaving: number;
   totalSaleGainTaxable: number;
   afterTaxTotalCost: number;
@@ -856,6 +859,9 @@ function summarizeScenario(
   );
   const totalGewstAddbackBase = years.reduce((sum, row) => sum + row.gewstAddbackBase, 0);
   const totalGewstAddback = years.reduce((sum, row) => sum + row.gewstAddback, 0);
+  const totalKstSaving = years.reduce((sum, row) => sum + row.kstSaving, 0);
+  const totalSoliSaving = years.reduce((sum, row) => sum + row.soliSaving, 0);
+  const totalGewstSaving = years.reduce((sum, row) => sum + row.gewstSaving, 0);
   const totalSaleGainTaxable = years.reduce((sum, row) => sum + row.saleGainTaxable, 0);
   const totalTaxSaving = years.reduce((sum, row) => sum + row.totalTaxSaving, 0);
   const termMonths =
@@ -892,6 +898,9 @@ function summarizeScenario(
     totalGewstAddbackBase,
     totalGewstAddback,
     gewstAddbackRate: totalDeductibleExpense > 0 ? totalGewstAddback / totalDeductibleExpense : 0,
+    totalKstSaving,
+    totalSoliSaving,
+    totalGewstSaving,
     totalTaxSaving,
     totalSaleGainTaxable,
     afterTaxTotalCost: totalNetCashOut - totalTaxSaving,

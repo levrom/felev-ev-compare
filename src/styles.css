@@ -283,6 +283,13 @@ button:disabled {
   gap: 5px;
 }
 
+.summaryMetric {
+  background: #ffffff;
+  padding: 14px;
+  display: grid;
+  gap: 5px;
+}
+
 .summaryStrip span {
   font-size: 12px;
   color: #70675f;
@@ -291,6 +298,82 @@ button:disabled {
 .summaryStrip strong {
   font-size: 19px;
   color: #1c1917;
+}
+
+.summaryMetricValue {
+  display: grid;
+  gap: 2px;
+  position: relative;
+  width: fit-content;
+  max-width: 100%;
+  outline: none;
+  cursor: help;
+}
+
+.summaryMetricValue strong {
+  font-size: 19px;
+  color: #1c1917;
+  font-weight: 700;
+}
+
+.summaryMetricValue em {
+  font-style: normal;
+  font-size: 12px;
+  color: #7a7168;
+  font-weight: 500;
+}
+
+.summaryMetricValue::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  z-index: 40;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: min(320px, 70vw);
+  padding: 8px 10px;
+  border: 1px solid #d6cdc3;
+  border-radius: 7px;
+  background: #1c1917;
+  color: #ffffff;
+  font-size: 12px;
+  line-height: 1.35;
+  white-space: pre-line;
+  box-shadow: 0 2px 8px rgba(28, 25, 23, 0.14);
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.summaryMetricValue::before {
+  content: "";
+  position: absolute;
+  z-index: 41;
+  left: 50%;
+  bottom: calc(100% + 3px);
+  width: 8px;
+  height: 8px;
+  border-right: 1px solid #d6cdc3;
+  border-bottom: 1px solid #d6cdc3;
+  background: #1c1917;
+  transform: translateX(-50%) rotate(45deg);
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.summaryMetricValue:hover::after,
+.summaryMetricValue:hover::before,
+.summaryMetricValue:focus-visible::after,
+.summaryMetricValue:focus-visible::before {
+  opacity: 1;
+  visibility: visible;
+}
+
+.summaryMetricValue:focus-visible {
+  outline: 2px solid var(--accent-outline);
+  outline-offset: 2px;
 }
 
 .workspace {

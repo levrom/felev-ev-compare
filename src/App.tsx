@@ -89,6 +89,7 @@ const UI_TEXT = {
       afterTaxEquivalent: "Nach Steuern / Monat",
       totalNetCash: "Netto-Cashflow",
       taxSaving: "Steuerersparnis",
+      taxShort: "Steuer",
       benefitPa: "Privatnutzung p.a.",
       perMonth: "/Monat",
     },
@@ -306,6 +307,7 @@ const UI_TEXT = {
       afterTaxEquivalent: "After-tax equivalent",
       totalNetCash: "Total net cash",
       taxSaving: "Tax saving",
+      taxShort: "tax",
       benefitPa: "Benefit p.a.",
       perMonth: "/mo",
     },
@@ -523,6 +525,7 @@ const UI_TEXT = {
       afterTaxEquivalent: "После налога / мес",
       totalNetCash: "Итого net cash",
       taxSaving: "Экономия налога",
+      taxShort: "налог",
       benefitPa: "Выгода в год",
       perMonth: "/мес",
     },
@@ -1061,6 +1064,28 @@ function TooltipButton({ help, label }: { help: string; label: string }) {
   );
 }
 
+function SummaryMetric({
+  label,
+  value,
+  note,
+  tooltip,
+}: {
+  label: string;
+  value: string;
+  note?: string;
+  tooltip: string;
+}) {
+  return (
+    <div className="summaryMetric">
+      <span>{label}</span>
+      <div className="summaryMetricValue" tabIndex={0} data-tooltip={tooltip} aria-label={`${label}: ${value}`}>
+        <strong>{value}</strong>
+        {note ? <em>{note}</em> : null}
+      </div>
+    </div>
+  );
+}
+
 function extractAppStateInput(raw: unknown): Partial<AppState> {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
   const candidate = raw as { state?: unknown };
@@ -1589,6 +1614,19 @@ function ScenarioEditor({
   onDeleteScenario: () => void;
   ui: UiText;
 }) {
+  const monthlyTaxSaving = selectedResult
+    ? selectedResult.totalTaxSaving / Math.max(1, selectedResult.evaluationMonths)
+    : 0;
+  const taxBreakdownTooltip = selectedResult
+    ? [
+        `${ui.summary.afterTaxEquivalent}: ${eur(selectedResult.afterTaxMonthlyEquivalent)}`,
+        `${ui.summary.taxSaving}: ${eur(selectedResult.totalTaxSaving)}`,
+        `KSt: ${eur(selectedResult.totalKstSaving)}`,
+        `Soli: ${eur(selectedResult.totalSoliSaving)}`,
+        `GewSt: ${eur(selectedResult.totalGewstSaving)}`,
+      ].join("\n")
+    : "";
+
   return (
     <section className="editorShell">
       <div className="topbar">
@@ -1609,22 +1647,42 @@ function ScenarioEditor({
       </div>
 
       <section className="summaryStrip">
-        <div>
-          <span>{ui.summary.afterTaxEquivalent}</span>
-          <strong>{selectedResult ? eur(selectedResult.afterTaxMonthlyEquivalent) : "0 EUR"}</strong>
-        </div>
-        <div>
-          <span>{ui.summary.totalNetCash}</span>
-          <strong>{selectedResult ? eur(selectedResult.totalNetCashOut) : "0 EUR"}</strong>
-        </div>
-        <div>
-          <span>{ui.summary.taxSaving}</span>
-          <strong>{selectedResult ? eur(selectedResult.totalTaxSaving) : "0 EUR"}</strong>
-        </div>
-        <div>
-          <span>{ui.summary.benefitPa}</span>
-          <strong>{selectedResult ? eur(selectedResult.privateUseBenefitAnnual) : "0 EUR"}</strong>
-        </div>
+        <SummaryMetric
+          label={ui.summary.afterTaxEquivalent}
+          value={selectedResult ? eur(selectedResult.afterTaxMonthlyEquivalent) : "0 EUR"}
+          note={selectedResult ? `(- ${eur(monthlyTaxSaving)} ${ui.summary.taxShort})` : undefined}
+          tooltip={taxBreakdownTooltip}
+        />
+        <SummaryMetric
+          label={ui.summary.totalNetCash}
+          value={selectedResult ? eur(selectedResult.totalNetCashOut) : "0 EUR"}
+          tooltip={
+            selectedResult
+              ? [
+                  `${ui.summary.totalNetCash}: ${eur(selectedResult.totalNetCashOut)}`,
+                  `${ui.summary.afterTaxEquivalent}: ${eur(selectedResult.afterTaxMonthlyEquivalent)}`,
+                  `${ui.summary.taxSaving}: ${eur(selectedResult.totalTaxSaving)}`,
+                ].join("\n")
+              : ""
+          }
+        />
+        <SummaryMetric
+          label={ui.summary.taxSaving}
+          value={selectedResult ? eur(selectedResult.totalTaxSaving) : "0 EUR"}
+          tooltip={taxBreakdownTooltip}
+        />
+        <SummaryMetric
+          label={ui.summary.benefitPa}
+          value={selectedResult ? eur(selectedResult.privateUseBenefitAnnual) : "0 EUR"}
+          tooltip={
+            selectedResult
+              ? [
+                  `${ui.summary.benefitPa}: ${eur(selectedResult.privateUseBenefitAnnual)}`,
+                  `${ui.summary.afterTaxEquivalent}: ${eur(selectedResult.afterTaxMonthlyEquivalent)}`,
+                ].join("\n")
+              : ""
+          }
+        />
       </section>
 
       <div className="workspace editorWorkspace">
