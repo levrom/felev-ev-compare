@@ -539,6 +539,16 @@ button:disabled {
   color: #766d65;
 }
 
+.datePair {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 8px;
+}
+
+.datePair input {
+  min-width: 0;
+}
+
 .inputWrap {
   display: flex;
   align-items: center;

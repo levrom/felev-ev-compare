@@ -11,6 +11,7 @@ export type CarInput = {
   purchasePriceGross: number;
   vatRate: number;
   vatMode: VatMode;
+  firstRegistrationMonth: number;
   firstRegistrationYear: number;
   afaYears: number;
   privateUseMethod: PrivateUseMethod;
@@ -285,6 +286,11 @@ function normalizeStartMonth(startMonth: number) {
   return Math.max(1, Math.min(12, Math.round(startMonth)));
 }
 
+function normalizeMonthOfYear(month: number) {
+  if (!Number.isFinite(month)) return 1;
+  return Math.max(1, Math.min(12, Math.round(month)));
+}
+
 export function calculateCreditPayment(
   principalGross: number,
   balloonGross: number,
@@ -456,6 +462,9 @@ function normalizeScenario(scenario: ScenarioInput): ScenarioInput {
     purchasePriceGross: finiteNumber(scenario.car?.purchasePriceGross, 0),
     vatRate: finiteNumber(scenario.car?.vatRate, 0.19),
     vatMode: scenario.car?.vatMode ?? (isUsed ? "none" : "regular"),
+    firstRegistrationMonth: normalizeMonthOfYear(
+      finiteNumber(scenario.car?.firstRegistrationMonth, 1),
+    ),
     firstRegistrationYear: Math.round(finiteNumber(scenario.car?.firstRegistrationYear, currentYear)),
     afaYears: Math.max(1, Math.round(finiteNumber(scenario.car?.afaYears, isUsed ? 3 : 6))),
     privateUseMethod: scenario.car?.privateUseMethod ?? "auto-bev",

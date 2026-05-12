@@ -110,6 +110,7 @@ const UI_TEXT = {
       purchasePriceGross: "Kaufpreis brutto",
       vatRate: "USt-Satz",
       usedVatMode: "USt bei Gebrauchtwagen",
+      firstRegistrationMonth: "Erstzulassung Monat",
       firstRegistrationYear: "Erstzulassung",
       afaYears: "AfA-Jahre",
       privateUseMethod: "Methode Privatnutzung",
@@ -219,6 +220,7 @@ const UI_TEXT = {
       purchasePriceGross: "Gesamter Kaufpreis brutto vor Finanzierung. Daraus kommen Cashflow und Vorsteuerlogik.",
       vatRate: "Globaler USt-Satz für Brutto-Netto-Aufteilung und Vorsteuerabzug.",
       usedVatMode: "Steuerlogik für Gebrauchtwagen, wenn keine abziehbare USt vorliegt.",
+      firstRegistrationMonth: "Monat der Erstzulassung. Er gehört mit dem Jahr zur Datumsbasis für Monatsansichten und das Gebrauchtwagenalter.",
       firstRegistrationYear: "Dient zur Ableitung des Fahrzeugalters für Gebrauchtwagen.",
       afaYears: "Globaler AfA-Zeitraum, der die Abschreibungsdauer bestimmt.",
       privateUseMethod: "Wählt zwischen BEV-Regel und manuellem Satz. Das beeinflusst nur den geldwerten Vorteil.",
@@ -325,6 +327,7 @@ const UI_TEXT = {
       purchasePriceGross: "Purchase price gross",
       vatRate: "VAT rate",
       usedVatMode: "Used VAT mode",
+      firstRegistrationMonth: "First registration month",
       firstRegistrationYear: "First registration",
       afaYears: "Afa years",
       privateUseMethod: "Private-use method",
@@ -434,6 +437,7 @@ const UI_TEXT = {
       purchasePriceGross: "Total gross purchase price before financing. It feeds cash out and VAT split logic.",
       vatRate: "Global VAT rate used for gross/net split and input VAT recovery.",
       usedVatMode: "Tax mode for used cars when no deductible VAT is available.",
+      firstRegistrationMonth: "Month of first registration. Paired with the year for monthly compare labels and used-car age.",
       firstRegistrationYear: "Used-car age comes from this year.",
       afaYears: "Global depreciation horizon used for AfA.",
       privateUseMethod: "Chooses between the BEV rule and a manual rate. It only affects the private-use benefit.",
@@ -540,6 +544,7 @@ const UI_TEXT = {
       purchasePriceGross: "Цена покупки gross",
       vatRate: "Ставка НДС",
       usedVatMode: "НДС для б/у",
+      firstRegistrationMonth: "Месяц первой регистрации",
       firstRegistrationYear: "Первая регистрация",
       afaYears: "Годы AfA",
       privateUseMethod: "Метод личного использования",
@@ -649,6 +654,7 @@ const UI_TEXT = {
       purchasePriceGross: "Итоговая цена покупки до финансирования. От нее считаются cash out и НДС.",
       vatRate: "Глобальная ставка НДС для разложения gross/net и Vorsteuer.",
       usedVatMode: "Налоговый режим для б/у авто, если входной НДС не вычитается.",
+      firstRegistrationMonth: "Месяц первой регистрации. Вместе с годом он задаёт дату для месячной таблицы и возраста авто.",
       firstRegistrationYear: "Из этого года считается возраст авто.",
       afaYears: "Глобальный срок AfA для амортизации покупки.",
       privateUseMethod: "Выбирает между правилом BEV и ручным процентом. Влияет только на private-use benefit.",
@@ -738,6 +744,12 @@ function normalizeMonthKey(value: unknown, fallback = currentMonthKey()) {
   if (typeof value !== "string") return fallback;
   const trimmed = value.trim();
   return /^\d{4}-\d{2}$/.test(trimmed) ? trimmed : fallback;
+}
+
+function formatMonthKey(year: number, month: number) {
+  const normalizedYear = Number.isFinite(year) ? Math.round(year) : new Date().getFullYear();
+  const normalizedMonth = Math.max(1, Math.min(12, Math.round(Number.isFinite(month) ? month : 1)));
+  return `${normalizedYear}-${String(normalizedMonth).padStart(2, "0")}`;
 }
 
 function addMonthsToMonthKey(monthKey: string, offset: number) {
@@ -870,6 +882,61 @@ function MonthField({
         value={value}
         onChange={(event) => onChange(event.target.value)}
       />
+    </div>
+  );
+}
+
+function MonthYearField({
+  label,
+  monthValue,
+  yearValue,
+  onMonthChange,
+  onYearChange,
+  help,
+}: {
+  label: string;
+  monthValue: number;
+  yearValue: number;
+  onMonthChange: (value: number) => void;
+  onYearChange: (value: number) => void;
+  help?: string;
+}) {
+  const monthId = useId();
+  const yearId = useId();
+  return (
+    <div className="field">
+      <div className="fieldLabelRow">
+        <label>{label}</label>
+        {help ? <TooltipButton help={help} label={label} /> : null}
+      </div>
+      <div className="datePair">
+        <input
+          id={monthId}
+          type="number"
+          min={1}
+          max={12}
+          step={1}
+          inputMode="numeric"
+          value={Number.isFinite(monthValue) ? monthValue : 1}
+          onChange={(event) => {
+            const next = Number(event.target.value);
+            onMonthChange(Number.isFinite(next) ? Math.max(1, Math.min(12, Math.round(next))) : 1);
+          }}
+          aria-label={`${label} month`}
+        />
+        <input
+          id={yearId}
+          type="number"
+          step={1}
+          inputMode="numeric"
+          value={Number.isFinite(yearValue) ? yearValue : new Date().getFullYear()}
+          onChange={(event) => {
+            const next = Number(event.target.value);
+            onYearChange(Number.isFinite(next) ? Math.round(next) : new Date().getFullYear());
+          }}
+          aria-label={`${label} year`}
+        />
+      </div>
     </div>
   );
 }
@@ -1071,6 +1138,7 @@ function normalizeAppStateFromInput(raw: unknown): AppState {
         purchasePriceGross: finiteNumber(scenario.car.purchasePriceGross, 0),
         vatRate: settings.vatRate,
         vatMode: scenario.kind === "credit-used" ? settings.usedVatMode : "regular",
+        firstRegistrationMonth: Math.max(1, Math.min(12, Math.round(finiteNumber(scenario.car.firstRegistrationMonth, 1)))),
         firstRegistrationYear: finiteNumber(scenario.car.firstRegistrationYear, new Date().getFullYear()),
         afaYears: settings.afaYears,
         privateUseMethod: scenario.car.privateUseMethod ?? "auto-bev",
@@ -1180,6 +1248,7 @@ function newScenario(kind: ScenarioKind, ui: UiText = UI_TEXT.de, settings: TaxS
     purchasePriceGross: kind === "credit-used" ? 35000 : 55000,
     vatRate: settings.vatRate,
     vatMode: kind === "credit-used" ? settings.usedVatMode : "regular",
+    firstRegistrationMonth: 1,
     firstRegistrationYear: kind === "credit-used" ? 2023 : 2026,
     afaYears: settings.afaYears,
     privateUseMethod: "auto-bev",
@@ -1372,14 +1441,14 @@ function CompareModal({
   open,
   scenarios,
   results,
-  settings,
+  comparisonStartMonth,
   onClose,
   ui,
 }: {
   open: boolean;
   scenarios: ScenarioInput[];
   results: ScenarioResult[];
-  settings: TaxSettings;
+  comparisonStartMonth: string;
   onClose: () => void;
   ui: UiText;
 }) {
@@ -1389,7 +1458,7 @@ function CompareModal({
   const maxYears = Math.max(...results.map((result) => result.years.length), 0);
   const maxMonths = Math.max(...results.map((result) => result.months.length), 0);
   const rowCount = compareMode === "year" ? maxYears : maxMonths;
-  const comparisonStartMonth = normalizeMonthKey(settings.comparisonStartMonth);
+  const comparisonStartMonthKey = normalizeMonthKey(comparisonStartMonth);
   const totalRows: Array<[string, (result: ScenarioResult) => string]> = [
     [ui.compareRows.afterTaxMonth, (result) => eur(result.afterTaxMonthlyEquivalent)],
     [ui.compareRows.totalGross, (result) => eur(result.totalGrossCashOut)],
@@ -1453,7 +1522,7 @@ function CompareModal({
                     const rowLabel =
                       compareMode === "year"
                         ? String(rowNumber)
-                        : `${rowNumber} - ${addMonthsToMonthKey(comparisonStartMonth, rowNumber - 1)}`;
+                        : `${rowNumber} - ${addMonthsToMonthKey(comparisonStartMonthKey, rowNumber - 1)}`;
                     return (
                       <tr key={rowNumber}>
                         <td>{rowLabel}</td>
@@ -1614,10 +1683,20 @@ function ScenarioEditor({
               suffix="EUR"
               help={ui.help.purchasePriceGross}
             />
-            <NumberField
+            <MonthYearField
               label={ui.fields.firstRegistrationYear}
-              value={selected.car.firstRegistrationYear}
-              onChange={(firstRegistrationYear) =>
+              monthValue={selected.car.firstRegistrationMonth ?? 1}
+              yearValue={selected.car.firstRegistrationYear}
+              onMonthChange={(firstRegistrationMonth) =>
+                onUpdateScenario({
+                  ...selected,
+                  car: {
+                    ...selected.car,
+                    firstRegistrationMonth,
+                  },
+                })
+              }
+              onYearChange={(firstRegistrationYear) =>
                 onUpdateScenario({
                   ...selected,
                   car: {
@@ -1626,7 +1705,7 @@ function ScenarioEditor({
                   },
                 })
               }
-              help={ui.help.firstRegistrationYear}
+              help={ui.help.firstRegistrationMonth}
             />
           </div>
         </section>
@@ -2062,6 +2141,12 @@ export default function App() {
     [state.scenarios, state.settings],
   );
   const selectedResult = results.find((result) => result.id === selected?.id);
+  const selectedComparisonStartMonth =
+    state.settings.comparisonStartMonth !== DEFAULT_TAX_SETTINGS.comparisonStartMonth
+      ? normalizeMonthKey(state.settings.comparisonStartMonth)
+      : selected && Number.isFinite(selected.car.firstRegistrationYear) && Number.isFinite(selected.car.firstRegistrationMonth)
+        ? formatMonthKey(selected.car.firstRegistrationYear, selected.car.firstRegistrationMonth)
+        : state.settings.comparisonStartMonth;
 
   function updateScenario(next: ScenarioInput) {
     setState((current) => ({
@@ -2278,7 +2363,7 @@ export default function App() {
         open={compareOpen}
         scenarios={state.scenarios}
         results={results}
-        settings={state.settings}
+        comparisonStartMonth={selectedComparisonStartMonth}
         onClose={() => setCompareOpen(false)}
         ui={ui}
       />
