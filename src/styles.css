@@ -743,6 +743,46 @@ button:disabled {
   overscroll-behavior: contain;
 }
 
+.compareHeaderActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.compareModeSwitch {
+  display: inline-flex;
+  width: fit-content;
+  min-height: 34px;
+  border: 1px solid #d6cdc3;
+  border-radius: 7px;
+  overflow: hidden;
+  background: #f3f0ec;
+}
+
+.compareModeButton {
+  border: 0;
+  background: transparent;
+  color: #766d65;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+.compareModeButton + .compareModeButton {
+  border-left: 1px solid #d6cdc3;
+}
+
+.compareModeButton.active {
+  background: var(--accent);
+  color: #ffffff;
+}
+
+.compareModeButton:focus-visible {
+  outline: 2px solid var(--accent-outline);
+  outline-offset: -2px;
+}
+
 .compareTable {
   min-width: 860px;
 }

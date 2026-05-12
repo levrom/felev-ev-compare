@@ -71,11 +71,34 @@ export type TaxSettings = {
   vatRate: number;
   usedVatMode: VatMode;
   afaYears: number;
+  comparisonStartMonth: string;
 };
 
 export type YearBreakdown = {
   year: number;
   months: number;
+  grossCashOut: number;
+  vorsteuer: number;
+  privateUseVat: number;
+  netCashOut: number;
+  deductibleExpense: number;
+  afa: number;
+  interest: number;
+  principal: number;
+  gewstAddbackBase: number;
+  gewstAddback: number;
+  saleGainTaxable: number;
+  taxableProfitAfterCar: number;
+  kstSaving: number;
+  soliSaving: number;
+  gewstSaving: number;
+  totalTaxSaving: number;
+  afterTaxCost: number;
+};
+
+export type MonthBreakdown = {
+  month: number;
+  year: number;
   grossCashOut: number;
   vorsteuer: number;
   privateUseVat: number;
@@ -118,6 +141,7 @@ export type ScenarioResult = {
   vatBasisForAfa: number;
   balloonGross: number;
   years: YearBreakdown[];
+  months: MonthBreakdown[];
 };
 
 export const DEFAULT_TAX_SETTINGS: TaxSettings = {
@@ -131,6 +155,7 @@ export const DEFAULT_TAX_SETTINGS: TaxSettings = {
   vatRate: 0.19,
   usedVatMode: "none",
   afaYears: 6,
+  comparisonStartMonth: currentMonthKey(),
 };
 
 export const eur = (value: number) =>
@@ -155,6 +180,11 @@ export function round(value: number, decimals = 2) {
 
 function finiteNumber(value: unknown, fallback = 0) {
   return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+function currentMonthKey() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 }
 
 export function splitVat(gross: number, vatRate: number, vatMode: VatMode) {
@@ -326,6 +356,10 @@ function monthsInYear(totalMonths: number, year: number, startMonth = 1) {
 function calendarYears(totalMonths: number, startMonth = 1) {
   if (totalMonths <= 0) return 0;
   return Math.ceil((normalizeStartMonth(startMonth) - 1 + totalMonths) / 12);
+}
+
+function calendarYearForMonthIndex(monthIndex: number, startMonth = 1) {
+  return Math.floor((normalizeStartMonth(startMonth) - 1 + Math.max(0, monthIndex)) / 12) + 1;
 }
 
 function annualRunningCosts(car: CarInput) {
@@ -534,6 +568,16 @@ function calculateLeaseScenario(
   const runningCosts = annualRunningCosts(car);
   const privateUse = calculatePrivateUseTax(car);
   const totalYears = calendarYears(lease.termMonths, car.startMonth);
+  const monthlyRunningGross = prorateAnnualCost(runningCosts.gross, 1);
+  const monthlyRunningVat = prorateAnnualCost(runningCosts.vat, 1);
+  const monthlyRunningNet = prorateAnnualCost(runningCosts.net, 1);
+  const monthlyPrivateUseVat = privateUse.privateUseVatAnnual / 12;
+  const monthlySpecialGross = special.gross;
+  const monthlySpecialVat = special.vat;
+  const monthlySpecialNet = special.net;
+  const monthlyFeesGross = fees.gross;
+  const monthlyFeesVat = fees.vat;
+  const monthlyFeesNet = fees.net;
 
   const years = Array.from({ length: totalYears }, (_, index): YearBreakdown => {
     const year = index + 1;
@@ -575,7 +619,53 @@ function calculateLeaseScenario(
     };
   });
 
-  return summarizeScenario(scenario, years, monthly.gross, 0, privateUse.privateUseVatAnnual);
+  const months = Array.from({ length: lease.termMonths }, (_, monthIndex): MonthBreakdown => {
+    const year = calendarYearForMonthIndex(monthIndex, car.startMonth);
+    const yearBreakdown = years[year - 1];
+    const isFirstMonth = monthIndex === 0;
+    const grossCashOut =
+      monthly.gross +
+      monthlyRunningGross +
+      (isFirstMonth ? monthlySpecialGross + monthlyFeesGross : 0);
+    const vorsteuer =
+      monthly.vat +
+      monthlyRunningVat +
+      (isFirstMonth ? monthlySpecialVat + monthlyFeesVat : 0);
+    const deductibleExpense =
+      monthly.net +
+      monthlyRunningNet +
+      (isFirstMonth ? monthlySpecialNet + monthlyFeesNet : 0);
+    const privateUseVat = monthlyPrivateUseVat;
+    const netCashOut = grossCashOut - vorsteuer + privateUseVat;
+    const monthTaxSaving =
+      yearBreakdown && yearBreakdown.months > 0 ? yearBreakdown.totalTaxSaving / yearBreakdown.months : 0;
+
+    return {
+      month: monthIndex + 1,
+      year,
+      grossCashOut,
+      vorsteuer,
+      privateUseVat,
+      netCashOut,
+      deductibleExpense,
+      afa: 0,
+      interest: 0,
+      principal: 0,
+      gewstAddbackBase: deductibleExpense * 0.2,
+      gewstAddback: yearBreakdown && yearBreakdown.months > 0 ? yearBreakdown.gewstAddback / yearBreakdown.months : 0,
+      saleGainTaxable: 0,
+      taxableProfitAfterCar: yearBreakdown && yearBreakdown.months > 0
+        ? yearBreakdown.taxableProfitAfterCar / yearBreakdown.months
+        : 0,
+      kstSaving: yearBreakdown && yearBreakdown.months > 0 ? yearBreakdown.kstSaving / yearBreakdown.months : 0,
+      soliSaving: yearBreakdown && yearBreakdown.months > 0 ? yearBreakdown.soliSaving / yearBreakdown.months : 0,
+      gewstSaving: yearBreakdown && yearBreakdown.months > 0 ? yearBreakdown.gewstSaving / yearBreakdown.months : 0,
+      totalTaxSaving: monthTaxSaving,
+      afterTaxCost: netCashOut - monthTaxSaving,
+    };
+  });
+
+  return summarizeScenario(scenario, years, months, monthly.gross, 0, privateUse.privateUseVatAnnual);
 }
 
 function calculateCreditScenario(
@@ -610,6 +700,10 @@ function calculateCreditScenario(
   const evaluationMonths = saleEnabled ? Math.max(credit.termMonths, saleAfterMonths) : Math.max(credit.termMonths, afaMonths);
   const afaBasis = purchase.net + acquisitionCosts.net;
   const annualAfa = afaBasis / afaYears;
+  const monthlyRunningGross = prorateAnnualCost(runningCosts.gross, 1);
+  const monthlyRunningVat = prorateAnnualCost(runningCosts.vat, 1);
+  const monthlyRunningNet = prorateAnnualCost(runningCosts.net, 1);
+  const monthlyPrivateUseVat = privateUse.privateUseVatAnnual / 12;
   const totalYears = saleEnabled
     ? Math.max(calendarYears(credit.termMonths, car.startMonth), calendarYears(saleAfterMonths, car.startMonth))
     : Math.max(
@@ -671,12 +765,74 @@ function calculateCreditScenario(
     };
   });
 
-  return summarizeScenario(scenario, years, paymentGross, afaBasis, privateUse.privateUseVatAnnual);
+  const months = Array.from({ length: evaluationMonths }, (_, monthIndex): MonthBreakdown => {
+    const year = calendarYearForMonthIndex(monthIndex, car.startMonth);
+    const yearBreakdown = years[year - 1];
+    const scheduleRow = schedule[monthIndex];
+    const isFirstMonth = monthIndex === 0;
+    const isSaleMonth = saleEnabled && monthIndex + 1 === saleAfterMonths;
+    const firstYearCash = isFirstMonth ? credit.downPaymentGross + acquisitionCosts.gross + fees.gross : 0;
+    const firstYearVat = isFirstMonth ? purchase.vat + acquisitionCosts.vat + fees.vat : 0;
+    const interest = scheduleRow?.interest ?? 0;
+    const principal = scheduleRow?.principal ?? 0;
+    const finalPayment = scheduleRow?.finalPayment ?? 0;
+    const afa = monthIndex < afaMonths ? annualAfa / 12 : 0;
+    const saleProceedsGross = isSaleMonth ? salePrice.gross : 0;
+    const saleGainTaxable = isSaleMonth ? salePrice.net - saleRemainingBookValue : 0;
+    const grossCashOut =
+      (scheduleRow?.paymentGross ?? 0) +
+      finalPayment +
+      firstYearCash +
+      monthlyRunningGross -
+      saleProceedsGross;
+    const vorsteuer = firstYearVat + monthlyRunningVat;
+    const deductibleExpense = interest + afa + monthlyRunningNet;
+    const privateUseVat = monthlyPrivateUseVat;
+    const netCashOut = grossCashOut - vorsteuer + privateUseVat;
+    const monthTaxSaving =
+      yearBreakdown && yearBreakdown.months > 0 ? yearBreakdown.totalTaxSaving / yearBreakdown.months : 0;
+    const monthGewstAddback =
+      yearBreakdown && yearBreakdown.months > 0 ? yearBreakdown.gewstAddback / yearBreakdown.months : 0;
+    const monthKstSaving =
+      yearBreakdown && yearBreakdown.months > 0 ? yearBreakdown.kstSaving / yearBreakdown.months : 0;
+    const monthSoliSaving =
+      yearBreakdown && yearBreakdown.months > 0 ? yearBreakdown.soliSaving / yearBreakdown.months : 0;
+    const monthGewstSaving =
+      yearBreakdown && yearBreakdown.months > 0 ? yearBreakdown.gewstSaving / yearBreakdown.months : 0;
+
+    return {
+      month: monthIndex + 1,
+      year,
+      grossCashOut,
+      vorsteuer,
+      privateUseVat,
+      netCashOut,
+      deductibleExpense,
+      afa,
+      interest,
+      principal,
+      gewstAddbackBase: interest,
+      gewstAddback: monthGewstAddback,
+      saleGainTaxable,
+      taxableProfitAfterCar:
+        yearBreakdown && yearBreakdown.months > 0
+          ? yearBreakdown.taxableProfitAfterCar / yearBreakdown.months
+          : 0,
+      kstSaving: monthKstSaving,
+      soliSaving: monthSoliSaving,
+      gewstSaving: monthGewstSaving,
+      totalTaxSaving: monthTaxSaving,
+      afterTaxCost: netCashOut - monthTaxSaving,
+    };
+  });
+
+  return summarizeScenario(scenario, years, months, paymentGross, afaBasis, privateUse.privateUseVatAnnual);
 }
 
 function summarizeScenario(
   scenario: ScenarioInput,
   years: YearBreakdown[],
+  months: MonthBreakdown[],
   monthlyPaymentGross: number,
   vatBasisForAfa: number,
   privateUseVatAnnual: number,
@@ -737,5 +893,6 @@ function summarizeScenario(
     vatBasisForAfa,
     balloonGross: scenario.credit?.balloonGross ?? 0,
     years,
+    months,
   };
 }

@@ -88,6 +88,7 @@ const UI_TEXT = {
       taxSettings: "Steuereinstellungen",
       compare: "Vergleich",
       byYear: "Nach Jahren",
+      byMonth: "Nach Monaten",
       moreInputs: "Weitere Angaben für genauere Berechnungen",
     },
     fields: {
@@ -122,9 +123,14 @@ const UI_TEXT = {
       balloonGross: "Schlussrate/Ballon",
       acquisitionCostsGross: "Kaufnebenkosten brutto",
       profitBeforeCar: "Gewinn vor Auto",
+      calculationStartMonth: "Berechnungsstart",
       gewstHebesatz: "GewSt-Hebesatz",
       kst: "KSt",
       soliOnKSt: "Soli auf KSt",
+    },
+    compareModes: {
+      year: "Jahre",
+      month: "Monate",
     },
     priceModes: {
       gross: "Brutto",
@@ -140,6 +146,7 @@ const UI_TEXT = {
     },
     compareRows: {
       year: "Jahr",
+      month: "Monat",
       yearAfterTax: "Effektiv nach Steuern",
       yearTaxSaving: "Steuerersparnis",
       afterTaxMonth: "Nach Steuern / Monat",
@@ -225,6 +232,8 @@ const UI_TEXT = {
       annualInterestRate: "Nominaler Zinssatz des Ballonkredits. Er bestimmt den Zinsanteil und damit die abziehbaren Kosten.",
       balloonGross: "Schlussrate am Laufzeitende. Sie ist Cashflow, aber kein direkter Aufwand.",
       acquisitionCostsGross: "Kaufnebenkosten erhöhen die AfA-Basis; abziehbare USt wird separat als Vorsteuer behandelt.",
+      calculationStartMonth:
+        "Legt Monat 1 in der Monatsansicht fest. Ändert die Steuerformeln nicht, nur die Datumslabels.",
     },
     hints: {
       invoiceSplit:
@@ -289,6 +298,7 @@ const UI_TEXT = {
       taxSettings: "Tax Settings",
       compare: "Compare",
       byYear: "By Year",
+      byMonth: "By Month",
       moreInputs: "More inputs to improve accuracy",
     },
     fields: {
@@ -323,9 +333,14 @@ const UI_TEXT = {
       balloonGross: "Balloon payment",
       acquisitionCostsGross: "Acquisition costs gross",
       profitBeforeCar: "Profit before car",
+      calculationStartMonth: "Comparison start",
       gewstHebesatz: "GewSt rate",
       kst: "CIT",
       soliOnKSt: "Soli on CIT",
+    },
+    compareModes: {
+      year: "Years",
+      month: "Months",
     },
     priceModes: {
       gross: "Gross",
@@ -341,6 +356,7 @@ const UI_TEXT = {
     },
     compareRows: {
       year: "Year",
+      month: "Month",
       yearAfterTax: "After-tax effective",
       yearTaxSaving: "Tax saving",
       afterTaxMonth: "After-tax / month",
@@ -426,6 +442,8 @@ const UI_TEXT = {
       annualInterestRate: "Nominal annual interest rate. It determines the interest share and deductible finance cost.",
       balloonGross: "Final balloon or residual payment at the end of the term. It is cash out, not a direct expense.",
       acquisitionCostsGross: "Acquisition costs increase the AfA base; deductible VAT is treated separately as input VAT.",
+      calculationStartMonth:
+        "Sets month 1 in the monthly compare view. It changes labels only, not the formulas.",
     },
     hints: {
       invoiceSplit:
@@ -490,6 +508,7 @@ const UI_TEXT = {
       taxSettings: "Налоговые настройки",
       compare: "Сравнение",
       byYear: "По годам",
+      byMonth: "По месяцам",
       moreInputs: "Какие данные ещё помогут уточнить расчёт",
     },
     fields: {
@@ -524,9 +543,14 @@ const UI_TEXT = {
       balloonGross: "Баллонный платёж",
       acquisitionCostsGross: "Расходы покупки gross",
       profitBeforeCar: "Прибыль до авто",
+      calculationStartMonth: "Старт сравнения",
       gewstHebesatz: "Коэффициент GewSt",
       kst: "KSt",
       soliOnKSt: "Soli на KSt",
+    },
+    compareModes: {
+      year: "Годы",
+      month: "Месяцы",
     },
     priceModes: {
       gross: "Брутто",
@@ -542,6 +566,7 @@ const UI_TEXT = {
     },
     compareRows: {
       year: "Год",
+      month: "Месяц",
       yearAfterTax: "Эффективно после налога",
       yearTaxSaving: "Экономия налога",
       afterTaxMonth: "После налога / мес",
@@ -627,6 +652,8 @@ const UI_TEXT = {
       annualInterestRate: "Номинальная годовая ставка. Она определяет долю процентов и вычитаемых расходов.",
       balloonGross: "Последний платеж в конце срока. Это cash out, но не прямой расход.",
       acquisitionCostsGross: "Расходы покупки увеличивают базу AfA; выделенный НДС учитывается отдельно как Vorsteuer.",
+      calculationStartMonth:
+        "Задаёт месяц 1 в месячном сравнении. Формулы не меняет, только подписи дат.",
     },
     hints: {
       invoiceSplit:
@@ -672,6 +699,26 @@ function normalizeLanguage(value: unknown): LanguageCode {
 
 function finiteNumber(value: unknown, fallback: number) {
   return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+function currentMonthKey() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function normalizeMonthKey(value: unknown, fallback = currentMonthKey()) {
+  if (typeof value !== "string") return fallback;
+  const trimmed = value.trim();
+  return /^\d{4}-\d{2}$/.test(trimmed) ? trimmed : fallback;
+}
+
+function addMonthsToMonthKey(monthKey: string, offset: number) {
+  const [yearPart, monthPart] = monthKey.split("-");
+  const year = Number(yearPart);
+  const month = Number(monthPart);
+  if (!Number.isFinite(year) || !Number.isFinite(month)) return monthKey;
+  const date = new Date(year, month - 1 + offset, 1);
+  return `${String(date.getMonth() + 1).padStart(2, "0")}.${date.getFullYear()}`;
 }
 
 type NumberFieldProps = {
@@ -767,6 +814,34 @@ function TextField({
         {help ? <TooltipButton help={help} label={label} /> : null}
       </div>
       <input id={inputId} value={value} onChange={(event) => onChange(event.target.value)} />
+    </div>
+  );
+}
+
+function MonthField({
+  label,
+  value,
+  onChange,
+  help,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  help?: string;
+}) {
+  const inputId = useId();
+  return (
+    <div className="field">
+      <div className="fieldLabelRow">
+        <label htmlFor={inputId}>{label}</label>
+        {help ? <TooltipButton help={help} label={label} /> : null}
+      </div>
+      <input
+        id={inputId}
+        type="month"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+      />
     </div>
   );
 }
@@ -943,6 +1018,10 @@ function loadAppState(): AppState {
             finiteNumber(selectedScenario?.car?.afaYears, DEFAULT_TAX_SETTINGS.afaYears),
           ),
         ),
+      ),
+      comparisonStartMonth: normalizeMonthKey(
+        parsedSettings?.comparisonStartMonth,
+        DEFAULT_TAX_SETTINGS.comparisonStartMonth,
       ),
     };
     const selectedId =
@@ -1174,6 +1253,12 @@ function TaxSettingsModal({
                 suffix="EUR p.a."
                 help={ui.help.profitBeforeCar}
               />
+              <MonthField
+                label={ui.fields.calculationStartMonth}
+                value={settings.comparisonStartMonth}
+                onChange={(comparisonStartMonth) => onChange({ comparisonStartMonth })}
+                help={ui.help.calculationStartMonth}
+              />
               <NumberField
                 label={ui.fields.gewstHebesatz}
                 value={settings.berlinHebesatz}
@@ -1247,18 +1332,24 @@ function CompareModal({
   open,
   scenarios,
   results,
+  settings,
   onClose,
   ui,
 }: {
   open: boolean;
   scenarios: ScenarioInput[];
   results: ScenarioResult[];
+  settings: TaxSettings;
   onClose: () => void;
   ui: UiText;
 }) {
+  const [compareMode, setCompareMode] = useState<"year" | "month">("year");
   if (!open) return null;
 
   const maxYears = Math.max(...results.map((result) => result.years.length), 0);
+  const maxMonths = Math.max(...results.map((result) => result.months.length), 0);
+  const rowCount = compareMode === "year" ? maxYears : maxMonths;
+  const comparisonStartMonth = normalizeMonthKey(settings.comparisonStartMonth);
   const totalRows: Array<[string, (result: ScenarioResult) => string]> = [
     [ui.compareRows.afterTaxMonth, (result) => eur(result.afterTaxMonthlyEquivalent)],
     [ui.compareRows.totalGross, (result) => eur(result.totalGrossCashOut)],
@@ -1279,51 +1370,78 @@ function CompareModal({
             <h2>{ui.sections.compare}</h2>
             <p>{ui.modals.compareDescription}</p>
           </div>
-          <button className="iconButton" onClick={onClose} aria-label={ui.modals.closeCompare}>
-            <X size={18} />
-          </button>
+          <div className="compareHeaderActions">
+            <div className="compareModeSwitch" role="group" aria-label={ui.sections.compare}>
+              <button
+                type="button"
+                className={compareMode === "year" ? "compareModeButton active" : "compareModeButton"}
+                aria-pressed={compareMode === "year"}
+                onClick={() => setCompareMode("year")}
+              >
+                {ui.compareModes.year}
+              </button>
+              <button
+                type="button"
+                className={compareMode === "month" ? "compareModeButton active" : "compareModeButton"}
+                aria-pressed={compareMode === "month"}
+                onClick={() => setCompareMode("month")}
+              >
+                {ui.compareModes.month}
+              </button>
+            </div>
+            <button className="iconButton" onClick={onClose} aria-label={ui.modals.closeCompare}>
+              <X size={18} />
+            </button>
+          </div>
         </div>
 
         <div className="compareBody">
           <section className="panel">
-            <h3>{ui.sections.byYear}</h3>
+            <h3>{compareMode === "year" ? ui.sections.byYear : ui.sections.byMonth}</h3>
             <div className="tableScroll">
               <table className="compareTable compareUnifiedTable">
                 <thead>
                   <tr>
-                    <th>{ui.compareRows.year}</th>
+                    <th>{compareMode === "year" ? ui.compareRows.year : ui.compareRows.month}</th>
                     {scenarios.map((scenario) => (
                       <th key={scenario.id}>{scenario.car.name}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {Array.from({ length: maxYears }, (_, index) => index + 1).map((year) => (
-                    <tr key={year}>
-                      <td>{year}</td>
-                      {results.map((result) => {
-                        const item = result.years[year - 1];
-                        return (
-                          <td key={result.id}>
-                            {item ? (
-                              <div className="yearCell">
-                                <div className="yearCellPrimary">
-                                  <span>{ui.compareRows.yearAfterTax}</span>
-                                  <strong>{eur(item.afterTaxCost)}</strong>
+                  {Array.from({ length: rowCount }, (_, index) => index + 1).map((rowNumber) => {
+                    const rowLabel =
+                      compareMode === "year"
+                        ? String(rowNumber)
+                        : `${rowNumber} - ${addMonthsToMonthKey(comparisonStartMonth, rowNumber - 1)}`;
+                    return (
+                      <tr key={rowNumber}>
+                        <td>{rowLabel}</td>
+                        {results.map((result) => {
+                          const item =
+                            compareMode === "year" ? result.years[rowNumber - 1] : result.months[rowNumber - 1];
+                          return (
+                            <td key={result.id}>
+                              {item ? (
+                                <div className="yearCell">
+                                  <div className="yearCellPrimary">
+                                    <span>{ui.compareRows.yearAfterTax}</span>
+                                    <strong>{eur(item.afterTaxCost)}</strong>
+                                  </div>
+                                  <div className="yearCellSecondary">
+                                    <span>{ui.compareRows.yearTaxSaving}</span>
+                                    <strong>{eur(item.totalTaxSaving)}</strong>
+                                  </div>
                                 </div>
-                                <div className="yearCellSecondary">
-                                  <span>{ui.compareRows.yearTaxSaving}</span>
-                                  <strong>{eur(item.totalTaxSaving)}</strong>
-                                </div>
-                              </div>
-                            ) : (
-                              "–"
-                            )}
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  ))}
+                              ) : (
+                                "–"
+                              )}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    );
+                  })}
                 </tbody>
                 <tfoot>
                   <tr className="totalsSeparator">
@@ -2074,6 +2192,7 @@ export default function App() {
         open={compareOpen}
         scenarios={state.scenarios}
         results={results}
+        settings={state.settings}
         onClose={() => setCompareOpen(false)}
         ui={ui}
       />

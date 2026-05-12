@@ -300,6 +300,33 @@ describe("scenario calculations", () => {
     expect(result.evaluationMonths).toBe(72);
   });
 
+  it("builds month rows with purchase month cash out and calendar labels", () => {
+    const scenario: ScenarioInput = {
+      id: "credit-months",
+      kind: "credit-new",
+      car: {
+        ...baseCar,
+        startMonth: 7,
+        salePriceMode: "gross",
+        salePriceNet: 0,
+        salePriceNetEnabled: false,
+      },
+      credit: {
+        termMonths: 12,
+        downPaymentGross: 5000,
+        annualInterestRate: 0,
+        balloonGross: 0,
+        acquisitionCostsGross: 0,
+        feesGross: 0,
+      },
+    };
+
+    const result = calculateScenario(scenario);
+    expect(result.months).toHaveLength(72);
+    expect(result.months[0].month).toBe(1);
+    expect(result.months[0].grossCashOut).toBeGreaterThan(result.months[1].grossCashOut);
+  });
+
   it("adds running costs as deductible expenses and recovers VAT where invoiced", () => {
     const scenario: ScenarioInput = {
       id: "lease-running-costs",
