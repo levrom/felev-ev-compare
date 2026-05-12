@@ -11,7 +11,7 @@ import {
   taxBreakdownTooltip,
 } from "./fields";
 import { eur, resolvePrivateUseRate, type ScenarioInput, type ScenarioResult } from "../lib/calculator";
-import { mergeCredit, mergeLease } from "../lib/scenario";
+import { mergeCredit, mergeLease, scenarioTitle } from "../lib/scenario";
 
 export function ScenarioEditor({
   selected,
@@ -58,7 +58,7 @@ export function ScenarioEditor({
         <div>
           <h2>{selected.car.name}</h2>
           <p>
-            {scenarioTitle(selected, ui)} · {ui.actions.editSelected}
+            {scenarioTitle(selected.kind, ui, "summary")} · {ui.actions.editSelected}
           </p>
         </div>
         <div className="actions">
@@ -581,12 +581,4 @@ export function ScenarioEditor({
       </div>
     </section>
   );
-}
-
-function scenarioTitle(scenario: ScenarioInput, ui: UiText) {
-  return scenario.kind === "lease"
-    ? ui.scenarioSummaries.lease
-    : scenario.kind === "credit-new"
-      ? ui.scenarioSummaries.creditNew
-      : ui.scenarioSummaries.creditUsed;
 }
