@@ -86,9 +86,11 @@ const UI_TEXT = {
       editSelected: "ausgewähltes Szenario bearbeiten",
     },
     summary: {
+      beforeTaxEquivalent: "Vor Steuern / Monat",
       afterTaxEquivalent: "Nach Steuern / Monat",
       totalNetCash: "Netto-Cashflow",
       taxSaving: "Steuerersparnis",
+      taxSavingMonthly: "Steuerersparnis / Monat",
       taxShort: "Steuer",
       benefitPa: "Privatnutzung p.a.",
       perMonth: "/Monat",
@@ -304,9 +306,11 @@ const UI_TEXT = {
       editSelected: "edit selected scenario",
     },
     summary: {
+      beforeTaxEquivalent: "Before tax / month",
       afterTaxEquivalent: "After-tax equivalent",
       totalNetCash: "Total net cash",
       taxSaving: "Tax saving",
+      taxSavingMonthly: "Tax saving / month",
       taxShort: "tax",
       benefitPa: "Benefit p.a.",
       perMonth: "/mo",
@@ -522,9 +526,11 @@ const UI_TEXT = {
       editSelected: "редактировать сценарий",
     },
     summary: {
+      beforeTaxEquivalent: "До налога / мес",
       afterTaxEquivalent: "После налога / мес",
       totalNetCash: "Итого net cash",
       taxSaving: "Экономия налога",
+      taxSavingMonthly: "Экономия налога / мес",
       taxShort: "налог",
       benefitPa: "Выгода в год",
       perMonth: "/мес",
@@ -1069,15 +1075,31 @@ function formatTaxNote(value: number, ui: UiText) {
   return `${value >= 0 ? "-" : "+"} ${amount} ${ui.summary.taxShort}`;
 }
 
-function taxBreakdownTooltip(
-  title: string,
-  totalTaxSaving: number,
-  kstSaving: number,
-  soliSaving: number,
-  gewstSaving: number,
-) {
+function taxBreakdownTooltip({
+  beforeTaxLabel,
+  beforeTax,
+  taxSavingLabel,
+  taxSaving,
+  afterTaxLabel,
+  afterTax,
+  kstSaving,
+  soliSaving,
+  gewstSaving,
+}: {
+  beforeTaxLabel: string;
+  beforeTax: number;
+  taxSavingLabel: string;
+  taxSaving: number;
+  afterTaxLabel: string;
+  afterTax: number;
+  kstSaving: number;
+  soliSaving: number;
+  gewstSaving: number;
+}) {
   return [
-    `${title}: ${eur(Math.max(0, totalTaxSaving))}`,
+    `${beforeTaxLabel}: ${eur(beforeTax)}`,
+    `${taxSavingLabel}: ${eur(Math.max(0, taxSaving))}`,
+    `${afterTaxLabel}: ${eur(afterTax)}`,
     `KSt: ${eur(kstSaving)}`,
     `Soli: ${eur(soliSaving)}`,
     `GewSt: ${eur(gewstSaving)}`,
@@ -1537,13 +1559,17 @@ function CompareModal({
       render: (result) => eur(result.afterTaxMonthlyEquivalent),
       breakdown: (result) => ({
         note: formatTaxNote(result.totalTaxSaving / Math.max(1, result.evaluationMonths), ui),
-        tooltip: taxBreakdownTooltip(
-          ui.compareRows.afterTaxMonth,
-          result.totalTaxSaving,
-          result.totalKstSaving,
-          result.totalSoliSaving,
-          result.totalGewstSaving,
-        ),
+        tooltip: taxBreakdownTooltip({
+          beforeTaxLabel: ui.summary.beforeTaxEquivalent,
+          beforeTax: result.totalNetCashOut / Math.max(1, result.evaluationMonths),
+          taxSavingLabel: ui.summary.taxSavingMonthly,
+          taxSaving: result.totalTaxSaving / Math.max(1, result.evaluationMonths),
+          afterTaxLabel: ui.compareRows.afterTaxMonth,
+          afterTax: result.afterTaxMonthlyEquivalent,
+          kstSaving: result.totalKstSaving / Math.max(1, result.evaluationMonths),
+          soliSaving: result.totalSoliSaving / Math.max(1, result.evaluationMonths),
+          gewstSaving: result.totalGewstSaving / Math.max(1, result.evaluationMonths),
+        }),
       }),
     },
     { label: ui.compareRows.totalGross, render: (result) => eur(result.totalGrossCashOut) },
@@ -1556,13 +1582,17 @@ function CompareModal({
       label: ui.compareRows.taxSaving,
       render: (result) => eur(result.totalTaxSaving),
       breakdown: (result) => ({
-        tooltip: taxBreakdownTooltip(
-          ui.compareRows.taxSaving,
-          result.totalTaxSaving,
-          result.totalKstSaving,
-          result.totalSoliSaving,
-          result.totalGewstSaving,
-        ),
+        tooltip: taxBreakdownTooltip({
+          beforeTaxLabel: ui.summary.beforeTaxEquivalent,
+          beforeTax: result.totalNetCashOut,
+          taxSavingLabel: ui.compareRows.taxSaving,
+          taxSaving: result.totalTaxSaving,
+          afterTaxLabel: ui.compareRows.afterTaxMonth,
+          afterTax: result.afterTaxTotalCost,
+          kstSaving: result.totalKstSaving,
+          soliSaving: result.totalSoliSaving,
+          gewstSaving: result.totalGewstSaving,
+        }),
       }),
     },
     { label: ui.compareRows.benefitPa, render: (result) => eur(result.privateUseBenefitAnnual) },
@@ -1632,13 +1662,17 @@ function CompareModal({
                                 <BreakdownValue
                                   value={eur(item.afterTaxCost)}
                                   note={formatTaxNote(item.totalTaxSaving, ui)}
-                                  tooltip={taxBreakdownTooltip(
-                                    ui.compareRows.yearAfterTax,
-                                    item.totalTaxSaving,
-                                    item.kstSaving,
-                                    item.soliSaving,
-                                    item.gewstSaving,
-                                  )}
+                                  tooltip={taxBreakdownTooltip({
+                                    beforeTaxLabel: ui.compareRows.netCash,
+                                    beforeTax: item.netCashOut,
+                                    taxSavingLabel: ui.compareRows.taxSaving,
+                                    taxSaving: item.totalTaxSaving,
+                                    afterTaxLabel: ui.compareRows.yearAfterTax,
+                                    afterTax: item.afterTaxCost,
+                                    kstSaving: item.kstSaving,
+                                    soliSaving: item.soliSaving,
+                                    gewstSaving: item.gewstSaving,
+                                  })}
                                 />
                               ) : (
                                 "–"
@@ -1700,14 +1734,21 @@ function ScenarioEditor({
   const monthlyTaxSaving = selectedResult
     ? selectedResult.totalTaxSaving / Math.max(1, selectedResult.evaluationMonths)
     : 0;
+  const monthlyBeforeTax = selectedResult
+    ? selectedResult.totalNetCashOut / Math.max(1, selectedResult.evaluationMonths)
+    : 0;
   const summaryTaxTooltip = selectedResult
-    ? [
-        `${ui.summary.afterTaxEquivalent}: ${eur(selectedResult.afterTaxMonthlyEquivalent)}`,
-        `${ui.summary.taxSaving}: ${eur(selectedResult.totalTaxSaving)}`,
-        `KSt: ${eur(selectedResult.totalKstSaving)}`,
-        `Soli: ${eur(selectedResult.totalSoliSaving)}`,
-        `GewSt: ${eur(selectedResult.totalGewstSaving)}`,
-      ].join("\n")
+    ? taxBreakdownTooltip({
+        beforeTaxLabel: ui.summary.beforeTaxEquivalent,
+        beforeTax: monthlyBeforeTax,
+        taxSavingLabel: ui.summary.taxSavingMonthly,
+        taxSaving: monthlyTaxSaving,
+        afterTaxLabel: ui.summary.afterTaxEquivalent,
+        afterTax: selectedResult.afterTaxMonthlyEquivalent,
+        kstSaving: selectedResult.totalKstSaving / Math.max(1, selectedResult.evaluationMonths),
+        soliSaving: selectedResult.totalSoliSaving / Math.max(1, selectedResult.evaluationMonths),
+        gewstSaving: selectedResult.totalGewstSaving / Math.max(1, selectedResult.evaluationMonths),
+      })
     : "";
 
   return (
