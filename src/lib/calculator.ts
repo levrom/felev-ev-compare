@@ -7,6 +7,7 @@ export type CarInput = {
   name: string;
   condition: "new" | "used";
   startMonth: number;
+  startYear: number;
   blpGross: number;
   purchasePriceGross: number;
   vatRate: number;
@@ -461,6 +462,7 @@ function normalizeScenario(scenario: ScenarioInput): ScenarioInput {
   const car = {
     ...scenario.car,
     startMonth: normalizeStartMonth(scenario.car?.startMonth),
+    startYear: Math.round(finiteNumber(scenario.car?.startYear, new Date().getFullYear())),
     blpGross: finiteNumber(scenario.car?.blpGross, 0),
     purchasePriceGross: finiteNumber(scenario.car?.purchasePriceGross, 0),
     vatRate: finiteNumber(scenario.car?.vatRate, 0.19),

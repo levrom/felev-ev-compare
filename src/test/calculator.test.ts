@@ -37,6 +37,7 @@ describe("scenario calculations", () => {
     name: "Test EV",
     condition: "new" as const,
     startMonth: 1,
+    startYear: 2026,
     blpGross: 60000,
     purchasePriceGross: 59500,
     vatRate: 0.19,
@@ -308,6 +309,7 @@ describe("scenario calculations", () => {
       car: {
         ...baseCar,
         startMonth: 7,
+        startYear: 2026,
         salePriceMode: "gross",
         salePriceNet: 0,
         salePriceNetEnabled: false,
@@ -368,6 +370,7 @@ describe("scenario calculations", () => {
       car: {
         ...baseCar,
         startMonth: 7,
+        startYear: 2026,
         annualInsuranceGross: 1200,
         annualInsuranceGrossEnabled: true,
         commuteDaysPerMonth: 0,
@@ -400,6 +403,7 @@ describe("scenario calculations", () => {
         name: "Legacy EV",
         condition: "new",
         startMonth: 1,
+        startYear: 2026,
         blpGross: 60000,
         purchasePriceGross: 59500,
         vatRate: 0.19,

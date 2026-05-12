@@ -106,7 +106,7 @@ const UI_TEXT = {
     fields: {
       name: "Name",
       condition: "Zustand",
-      startMonth: "Startmonat",
+      startMonth: "Beginn der Nutzung",
       blpGross: "Bruttolistenpreis",
       purchasePriceGross: "Kaufpreis brutto",
       vatRate: "USt-Satz",
@@ -216,7 +216,7 @@ const UI_TEXT = {
       soliOnKSt: "Solidaritätszuschlag auf die berechnete KSt-Ersparnis.",
       name: "Anzeigename des Szenarios. Keine Auswirkung auf die Rechnung.",
       condition: "Bestimmt, ob AfA und USt nach Neu- oder Gebrauchtwagenregeln laufen.",
-      startMonth: "Monat des Nutzungsbeginns. AfA und laufende Kosten werden im ersten Jahr zeitanteilig gerechnet.",
+      startMonth: "Monat und Jahr des Nutzungsbeginns. AfA, laufende Kosten und Monatsvergleich richten sich an diesem Startdatum aus.",
       blpGross: "Bruttolistenpreis für den geldwerten Vorteil. Er steuert auch die automatische 0,25%/0,5%-Regel.",
       purchasePriceGross: "Gesamter Kaufpreis brutto vor Finanzierung. Daraus kommen Cashflow und Vorsteuerlogik.",
       vatRate: "Globaler USt-Satz für Brutto-Netto-Aufteilung und Vorsteuerabzug.",
@@ -324,7 +324,7 @@ const UI_TEXT = {
     fields: {
       name: "Name",
       condition: "Condition",
-      startMonth: "Start month",
+      startMonth: "Usage start",
       blpGross: "List price",
       purchasePriceGross: "Purchase price gross",
       vatRate: "VAT rate",
@@ -434,7 +434,7 @@ const UI_TEXT = {
       soliOnKSt: "Solidarity surcharge applied to the calculated CIT saving.",
       name: "Scenario label. It does not change the calculation.",
       condition: "Decides whether AfA and VAT use the new-car or used-car rule set.",
-      startMonth: "Month when the vehicle starts being used. AfA and annual running costs are prorated in year one.",
+      startMonth: "Month and year when the vehicle starts being used. AfA, running costs, and monthly compare labels are anchored to this start date.",
       blpGross: "Gross list price for the benefit-in-kind calculation. It also drives the auto 0.25% / 0.5% rule.",
       purchasePriceGross: "Total gross purchase price before financing. It feeds cash out and VAT split logic.",
       vatRate: "Global VAT rate used for gross/net split and input VAT recovery.",
@@ -542,7 +542,7 @@ const UI_TEXT = {
     fields: {
       name: "Название",
       condition: "Состояние",
-      startMonth: "Месяц начала",
+      startMonth: "Beginn der Nutzung",
       blpGross: "Каталожная цена",
       purchasePriceGross: "Цена покупки gross",
       vatRate: "Ставка НДС",
@@ -652,7 +652,7 @@ const UI_TEXT = {
       soliOnKSt: "Soli, который начисляется на рассчитанную экономию KSt.",
       name: "Название сценария. На расчет не влияет.",
       condition: "Определяет, применять правила AfA и НДС для нового или б/у авто.",
-      startMonth: "Месяц начала использования. AfA и годовые расходы в первый год считаются пропорционально.",
+      startMonth: "Месяц и год начала использования. AfA, годовые расходы и месячное сравнение привязаны к этой дате.",
       blpGross: "Каталожная цена для льготы в натуре. Она же задает авто-правило 0.25% / 0.5%.",
       purchasePriceGross: "Итоговая цена покупки до финансирования. От нее считаются cash out и НДС.",
       vatRate: "Глобальная ставка НДС для разложения gross/net и Vorsteuer.",
@@ -1064,6 +1064,48 @@ function TooltipButton({ help, label }: { help: string; label: string }) {
   );
 }
 
+function formatTaxNote(value: number, ui: UiText) {
+  const amount = eur(Math.abs(value));
+  return `${value >= 0 ? "-" : "+"} ${amount} ${ui.summary.taxShort}`;
+}
+
+function taxBreakdownTooltip(
+  title: string,
+  totalTaxSaving: number,
+  kstSaving: number,
+  soliSaving: number,
+  gewstSaving: number,
+) {
+  return [
+    `${title}: ${eur(Math.max(0, totalTaxSaving))}`,
+    `KSt: ${eur(kstSaving)}`,
+    `Soli: ${eur(soliSaving)}`,
+    `GewSt: ${eur(gewstSaving)}`,
+  ].join("\n");
+}
+
+function BreakdownValue({
+  value,
+  note,
+  tooltip,
+}: {
+  value: string;
+  note?: string;
+  tooltip: string;
+}) {
+  return (
+    <div
+      className="breakdownValue"
+      tabIndex={0}
+      data-tooltip={tooltip}
+      aria-label={note ? `${value} ${note}` : value}
+    >
+      <strong>{value}</strong>
+      {note ? <em>{note}</em> : null}
+    </div>
+  );
+}
+
 function SummaryMetric({
   label,
   value,
@@ -1078,10 +1120,7 @@ function SummaryMetric({
   return (
     <div className="summaryMetric">
       <span>{label}</span>
-      <div className="summaryMetricValue" tabIndex={0} data-tooltip={tooltip} aria-label={`${label}: ${value}`}>
-        <strong>{value}</strong>
-        {note ? <em>{note}</em> : null}
-      </div>
+      <BreakdownValue value={value} note={note} tooltip={tooltip} />
     </div>
   );
 }
@@ -1159,6 +1198,9 @@ function normalizeAppStateFromInput(raw: unknown): AppState {
         ...scenario.car,
         condition: scenario.car.condition ?? (scenario.kind === "credit-used" ? "used" : "new"),
         startMonth: finiteNumber(scenario.car.startMonth, 1),
+        startYear: Math.round(
+          finiteNumber(scenario.car.startYear, finiteNumber(scenario.car.firstRegistrationYear, new Date().getFullYear())),
+        ),
         blpGross: finiteNumber(scenario.car.blpGross, 0),
         purchasePriceGross: finiteNumber(scenario.car.purchasePriceGross, 0),
         vatRate: settings.vatRate,
@@ -1269,6 +1311,7 @@ function newScenario(kind: ScenarioKind, ui: UiText = UI_TEXT.de, settings: TaxS
           : ui.scenarioKinds.creditUsed,
     condition: kind === "credit-used" ? "used" : "new",
     startMonth: 1,
+    startYear: new Date().getFullYear(),
     blpGross: 55000,
     purchasePriceGross: kind === "credit-used" ? 35000 : 55000,
     vatRate: settings.vatRate,
@@ -1484,16 +1527,45 @@ function CompareModal({
   const maxMonths = Math.max(...results.map((result) => result.months.length), 0);
   const rowCount = compareMode === "year" ? maxYears : maxMonths;
   const comparisonStartMonthKey = normalizeMonthKey(comparisonStartMonth);
-  const totalRows: Array<[string, (result: ScenarioResult) => string]> = [
-    [ui.compareRows.afterTaxMonth, (result) => eur(result.afterTaxMonthlyEquivalent)],
-    [ui.compareRows.totalGross, (result) => eur(result.totalGrossCashOut)],
-    [ui.compareRows.vorsteuer, (result) => eur(result.totalVorsteuer)],
-    [ui.compareRows.netCash, (result) => eur(result.totalNetCashOut)],
-    [ui.compareRows.deductible, (result) => eur(result.totalDeductibleExpense)],
-    [ui.compareRows.gewstAddback, (result) => eur(result.totalGewstAddback)],
-    [ui.compareRows.gewstAddbackRate, (result) => pct(result.gewstAddbackRate)],
-    [ui.compareRows.taxSaving, (result) => eur(result.totalTaxSaving)],
-    [ui.compareRows.benefitPa, (result) => eur(result.privateUseBenefitAnnual)],
+  const totalRows: Array<{
+    label: string;
+    render: (result: ScenarioResult) => string;
+    breakdown?: (result: ScenarioResult) => { note?: string; tooltip: string };
+  }> = [
+    {
+      label: ui.compareRows.afterTaxMonth,
+      render: (result) => eur(result.afterTaxMonthlyEquivalent),
+      breakdown: (result) => ({
+        note: formatTaxNote(result.totalTaxSaving / Math.max(1, result.evaluationMonths), ui),
+        tooltip: taxBreakdownTooltip(
+          ui.compareRows.afterTaxMonth,
+          result.totalTaxSaving,
+          result.totalKstSaving,
+          result.totalSoliSaving,
+          result.totalGewstSaving,
+        ),
+      }),
+    },
+    { label: ui.compareRows.totalGross, render: (result) => eur(result.totalGrossCashOut) },
+    { label: ui.compareRows.vorsteuer, render: (result) => eur(result.totalVorsteuer) },
+    { label: ui.compareRows.netCash, render: (result) => eur(result.totalNetCashOut) },
+    { label: ui.compareRows.deductible, render: (result) => eur(result.totalDeductibleExpense) },
+    { label: ui.compareRows.gewstAddback, render: (result) => eur(result.totalGewstAddback) },
+    { label: ui.compareRows.gewstAddbackRate, render: (result) => pct(result.gewstAddbackRate) },
+    {
+      label: ui.compareRows.taxSaving,
+      render: (result) => eur(result.totalTaxSaving),
+      breakdown: (result) => ({
+        tooltip: taxBreakdownTooltip(
+          ui.compareRows.taxSaving,
+          result.totalTaxSaving,
+          result.totalKstSaving,
+          result.totalSoliSaving,
+          result.totalGewstSaving,
+        ),
+      }),
+    },
+    { label: ui.compareRows.benefitPa, render: (result) => eur(result.privateUseBenefitAnnual) },
   ];
 
   return (
@@ -1557,16 +1629,17 @@ function CompareModal({
                           return (
                             <td key={result.id}>
                               {item ? (
-                                <div className="yearCell">
-                                  <div className="yearCellPrimary">
-                                    <span>{ui.compareRows.yearAfterTax}</span>
-                                    <strong>{eur(item.afterTaxCost)}</strong>
-                                  </div>
-                                  <div className="yearCellSecondary">
-                                    <span>{ui.compareRows.yearTaxSaving}</span>
-                                    <strong>{eur(item.totalTaxSaving)}</strong>
-                                  </div>
-                                </div>
+                                <BreakdownValue
+                                  value={eur(item.afterTaxCost)}
+                                  note={formatTaxNote(item.totalTaxSaving, ui)}
+                                  tooltip={taxBreakdownTooltip(
+                                    ui.compareRows.yearAfterTax,
+                                    item.totalTaxSaving,
+                                    item.kstSaving,
+                                    item.soliSaving,
+                                    item.gewstSaving,
+                                  )}
+                                />
                               ) : (
                                 "–"
                               )}
@@ -1581,12 +1654,22 @@ function CompareModal({
                   <tr className="totalsSeparator">
                     <td colSpan={scenarios.length + 1} />
                   </tr>
-                  {totalRows.map(([label, fn]) => (
-                    <tr className="totalRow" key={label}>
-                      <td>{label}</td>
-                      {results.map((result) => (
-                        <td key={result.id}>{fn(result)}</td>
-                      ))}
+                  {totalRows.map((row) => (
+                    <tr className="totalRow" key={row.label}>
+                      <td>{row.label}</td>
+                      {results.map((result) => {
+                        const value = row.render(result);
+                        const breakdown = row.breakdown?.(result);
+                        return (
+                          <td key={result.id}>
+                            {breakdown ? (
+                              <BreakdownValue value={value} note={breakdown.note} tooltip={breakdown.tooltip} />
+                            ) : (
+                              value
+                            )}
+                          </td>
+                        );
+                      })}
                     </tr>
                   ))}
                 </tfoot>
@@ -1617,7 +1700,7 @@ function ScenarioEditor({
   const monthlyTaxSaving = selectedResult
     ? selectedResult.totalTaxSaving / Math.max(1, selectedResult.evaluationMonths)
     : 0;
-  const taxBreakdownTooltip = selectedResult
+  const summaryTaxTooltip = selectedResult
     ? [
         `${ui.summary.afterTaxEquivalent}: ${eur(selectedResult.afterTaxMonthlyEquivalent)}`,
         `${ui.summary.taxSaving}: ${eur(selectedResult.totalTaxSaving)}`,
@@ -1651,7 +1734,7 @@ function ScenarioEditor({
           label={ui.summary.afterTaxEquivalent}
           value={selectedResult ? eur(selectedResult.afterTaxMonthlyEquivalent) : "0 EUR"}
           note={selectedResult ? `(- ${eur(monthlyTaxSaving)} ${ui.summary.taxShort})` : undefined}
-          tooltip={taxBreakdownTooltip}
+          tooltip={summaryTaxTooltip}
         />
         <SummaryMetric
           label={ui.summary.totalNetCash}
@@ -1669,7 +1752,7 @@ function ScenarioEditor({
         <SummaryMetric
           label={ui.summary.taxSaving}
           value={selectedResult ? eur(selectedResult.totalTaxSaving) : "0 EUR"}
-          tooltip={taxBreakdownTooltip}
+          tooltip={summaryTaxTooltip}
         />
         <SummaryMetric
           label={ui.summary.benefitPa}
@@ -1707,15 +1790,20 @@ function ScenarioEditor({
               }
               help={ui.help.condition}
             />
-            <NumberField
+            <MonthYearField
               label={ui.fields.startMonth}
-              value={selected.car.startMonth}
-              step={1}
-              integer
-              onChange={(startMonth) =>
+              monthValue={selected.car.startMonth}
+              yearValue={selected.car.startYear}
+              onMonthChange={(startMonth) =>
                 onUpdateScenario({
                   ...selected,
                   car: { ...selected.car, startMonth: Math.max(1, Math.min(12, startMonth)) },
+                })
+              }
+              onYearChange={(startYear) =>
+                onUpdateScenario({
+                  ...selected,
+                  car: { ...selected.car, startYear },
                 })
               }
               help={ui.help.startMonth}
@@ -2202,8 +2290,8 @@ export default function App() {
   const selectedComparisonStartMonth =
     state.settings.comparisonStartMonth !== DEFAULT_TAX_SETTINGS.comparisonStartMonth
       ? normalizeMonthKey(state.settings.comparisonStartMonth)
-      : selected && Number.isFinite(selected.car.firstRegistrationYear) && Number.isFinite(selected.car.firstRegistrationMonth)
-        ? formatMonthKey(selected.car.firstRegistrationYear, selected.car.firstRegistrationMonth)
+      : selected && Number.isFinite(selected.car.startYear) && Number.isFinite(selected.car.startMonth)
+        ? formatMonthKey(selected.car.startYear, selected.car.startMonth)
         : state.settings.comparisonStartMonth;
 
   function updateScenario(next: ScenarioInput) {
