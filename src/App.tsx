@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState, type ReactNode } from "react";
 import {
   BarChart3,
   Copy,
@@ -677,6 +677,7 @@ type NumberFieldProps = {
   disabled?: boolean;
   integer?: boolean;
   help?: string;
+  prepend?: ReactNode;
   optionalToggle?: {
     checked: boolean;
     onChange: (checked: boolean) => void;
@@ -692,6 +693,7 @@ function NumberField({
   disabled,
   integer = false,
   help,
+  prepend,
   optionalToggle,
 }: NumberFieldProps) {
   const inputId = useId();
@@ -705,6 +707,7 @@ function NumberField({
         {help ? <TooltipButton help={help} label={label} /> : null}
       </div>
       <div className="inputWrap">
+        {prepend ?? null}
         {optionalToggle ? (
           <label className="fieldToggleControl" htmlFor={toggleId}>
             <input
@@ -829,6 +832,35 @@ function ToggleField<T extends string>({
           );
         })}
       </div>
+    </div>
+  );
+}
+
+function InlineToggleField<T extends string>({
+  value,
+  options,
+  onChange,
+}: {
+  value: T;
+  options: { value: T; label: string }[];
+  onChange: (value: T) => void;
+}) {
+  return (
+    <div className="inlineModeToggleGroup" role="group" aria-label="Price mode">
+      {options.map((option) => {
+        const active = option.value === value;
+        return (
+          <button
+            key={option.value}
+            type="button"
+            className={`inlineModeToggleButton${active ? " isActive" : ""}`}
+            aria-pressed={active}
+            onClick={() => onChange(option.value)}
+          >
+            {option.label}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -1538,21 +1570,6 @@ function ScenarioEditor({
                 suffix="EUR"
                 help={ui.help.feesGross}
               />
-              <ToggleField<"gross" | "net">
-                label={ui.fields.salePriceMode}
-                value={selected.car.salePriceMode ?? "gross"}
-                options={[
-                  { value: "gross", label: ui.priceModes.gross },
-                  { value: "net", label: ui.priceModes.net },
-                ]}
-                onChange={(salePriceMode) =>
-                  onUpdateScenario({
-                    ...selected,
-                    car: { ...selected.car, salePriceMode },
-                  })
-                }
-                help={ui.help.salePriceMode}
-              />
               <NumberField
                 label={ui.fields.salePriceNet}
                 value={selected.car.salePriceNet}
@@ -1571,6 +1588,21 @@ function ScenarioEditor({
                   })
                 }
                 suffix="EUR"
+                prepend={
+                  <InlineToggleField<"gross" | "net">
+                    value={selected.car.salePriceMode ?? "gross"}
+                    options={[
+                      { value: "gross", label: ui.priceModes.gross },
+                      { value: "net", label: ui.priceModes.net },
+                    ]}
+                    onChange={(salePriceMode) =>
+                      onUpdateScenario({
+                        ...selected,
+                        car: { ...selected.car, salePriceMode },
+                      })
+                    }
+                  />
+                }
                 help={ui.help.salePriceNet}
               />
               <NumberField
