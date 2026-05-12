@@ -1062,15 +1062,79 @@ function InlineToggleField<T extends string>({
 }
 
 function TooltipButton({ help, label }: { help: string; label: string }) {
+  const tooltipId = useId();
+  const anchorRef = useRef<HTMLButtonElement | null>(null);
+  const [open, setOpen] = useState(false);
+  const [position, setPosition] = useState<{ top: number; left: number; placement: "top" | "bottom" } | null>(
+    null,
+  );
+
+  const updatePosition = () => {
+    const anchor = anchorRef.current;
+    if (!anchor || typeof window === "undefined") return;
+    const rect = anchor.getBoundingClientRect();
+    const viewportPadding = 12;
+    const tooltipWidth = Math.min(320, Math.max(220, window.innerWidth - viewportPadding * 2));
+    const centerX = rect.left + rect.width / 2;
+    const left = Math.min(
+      Math.max(centerX, viewportPadding + tooltipWidth / 2),
+      window.innerWidth - viewportPadding - tooltipWidth / 2,
+    );
+    const placeBelow = rect.top < 180;
+    const top = placeBelow ? rect.bottom + 8 : rect.top - 8;
+    setPosition({ top, left, placement: placeBelow ? "bottom" : "top" });
+  };
+
+  useEffect(() => {
+    if (!open) return;
+    updatePosition();
+    const handleScrollOrResize = () => updatePosition();
+    window.addEventListener("resize", handleScrollOrResize);
+    window.addEventListener("scroll", handleScrollOrResize, true);
+    return () => {
+      window.removeEventListener("resize", handleScrollOrResize);
+      window.removeEventListener("scroll", handleScrollOrResize, true);
+    };
+  }, [open]);
+
   return (
-    <button
-      type="button"
-      className="helpButton"
-      data-tooltip={help}
-      aria-label={`${label}: ${help}`}
-    >
-      <CircleHelp size={14} />
-    </button>
+    <>
+      <button
+        ref={anchorRef}
+        type="button"
+        className="helpButton"
+        aria-describedby={open ? tooltipId : undefined}
+        aria-label={`${label}: ${help}`}
+        onMouseEnter={() => {
+          updatePosition();
+          setOpen(true);
+        }}
+        onMouseLeave={() => setOpen(false)}
+        onFocus={() => {
+          updatePosition();
+          setOpen(true);
+        }}
+        onBlur={() => setOpen(false)}
+      >
+        <CircleHelp size={14} />
+      </button>
+      {open && position && typeof document !== "undefined"
+        ? createPortal(
+            <div
+              id={tooltipId}
+              className={`floatingTooltip ${position.placement === "bottom" ? "placementBottom" : "placementTop"}`}
+              style={{
+                top: `${position.top}px`,
+                left: `${position.left}px`,
+              }}
+              role="tooltip"
+            >
+              {help}
+            </div>,
+            document.body,
+          )
+        : null}
+    </>
   );
 }
 
