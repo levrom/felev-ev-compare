@@ -59,6 +59,7 @@ describe("scenario calculations", () => {
     annualMaintenanceGrossEnabled: false,
     annualTiresGross: 0,
     annualTiresGrossEnabled: false,
+    salePriceMode: "gross" as const,
     salePriceNet: 0,
     salePriceNetEnabled: false,
     saleAfterMonths: 0,
@@ -96,6 +97,7 @@ describe("scenario calculations", () => {
         purchasePriceGross: 30000,
         vatMode: "none",
         afaYears: 3,
+        salePriceMode: "gross",
       },
       credit: {
         termMonths: 36,
@@ -232,6 +234,7 @@ describe("scenario calculations", () => {
       car: {
         ...baseCar,
         purchasePriceGross: 11900,
+        salePriceMode: "net",
         salePriceNet: 10000,
         salePriceNetEnabled: true,
       },
@@ -248,6 +251,31 @@ describe("scenario calculations", () => {
     const result = calculateScenario(scenario);
     expect(result.totalSaleGainTaxable).toBeCloseTo(1666.666666666666);
     expect(result.years[0].saleGainTaxable).toBeCloseTo(1666.666666666666);
+  });
+
+  it("interprets sale price as gross when gross mode is selected", () => {
+    const scenario: ScenarioInput = {
+      id: "credit-sale-gross",
+      kind: "credit-new",
+      car: {
+        ...baseCar,
+        purchasePriceGross: 11900,
+        salePriceMode: "gross",
+        salePriceNet: 11900,
+        salePriceNetEnabled: true,
+      },
+      credit: {
+        termMonths: 12,
+        downPaymentGross: 0,
+        annualInterestRate: 0,
+        balloonGross: 0,
+        acquisitionCostsGross: 0,
+        feesGross: 0,
+      },
+    };
+
+    const result = calculateScenario(scenario);
+    expect(result.totalSaleGainTaxable).toBeCloseTo(1666.666666666666);
   });
 
   it("reports the credit horizon over finance term or depreciation horizon", () => {
@@ -286,6 +314,7 @@ describe("scenario calculations", () => {
         annualTiresGross: 0,
         commuteDaysPerMonth: 0,
         commuteDaysPerMonthEnabled: false,
+        salePriceMode: "gross",
         salePriceNet: 0,
         salePriceNetEnabled: false,
       },
@@ -315,6 +344,7 @@ describe("scenario calculations", () => {
         annualInsuranceGrossEnabled: true,
         commuteDaysPerMonth: 0,
         commuteDaysPerMonthEnabled: false,
+        salePriceMode: "gross",
         salePriceNet: 0,
         salePriceNetEnabled: false,
       },
@@ -349,6 +379,7 @@ describe("scenario calculations", () => {
         firstRegistrationYear: 2026,
         commuteDaysPerMonth: 0,
         commuteDaysPerMonthEnabled: false,
+        salePriceMode: "gross",
         salePriceNet: 0,
         salePriceNetEnabled: false,
       },

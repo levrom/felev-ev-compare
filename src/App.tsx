@@ -14,6 +14,7 @@ import {
   eur,
   pct,
   resolvePrivateUseRate,
+  type SalePriceMode,
   type CarInput,
   type CreditInput,
   type LeaseInput,
@@ -108,7 +109,8 @@ const UI_TEXT = {
       annualChargingGross: "Laden p.a. brutto",
       annualMaintenanceGross: "Wartung p.a. brutto",
       annualTiresGross: "Reifen p.a. brutto",
-      salePriceNet: "Verkauf netto",
+      salePriceNet: "Verkaufspreis",
+      salePriceMode: "Preisart",
       saleAfterMonths: "Verkauf nach Monaten",
       termMonths: "Laufzeit",
       monthlyRateGross: "Rate brutto",
@@ -123,6 +125,10 @@ const UI_TEXT = {
       gewstHebesatz: "GewSt-Hebesatz",
       kst: "KSt",
       soliOnKSt: "Soli auf KSt",
+    },
+    priceModes: {
+      gross: "Brutto",
+      net: "Netto",
     },
     options: {
       new: "Neu",
@@ -203,7 +209,9 @@ const UI_TEXT = {
       annualMaintenanceGross: "Betriebsausgabe im Cashflow. Bei USt-Rechnung wird die Vorsteuer separat abgezogen.",
       annualTiresGross: "Betriebsausgabe im Cashflow. Bei USt-Rechnung wird die Vorsteuer separat abgezogen.",
       salePriceNet:
-        "Netto-Verkaufserlös am Ende der Nutzung. Er senkt die TCO und erzeugt einen steuerpflichtigen Veräußerungsgewinn gegen den Restbuchwert.",
+        "Verkaufserlös am Ende der Nutzung. Die Preisart entscheidet, ob der Betrag als brutto oder netto interpretiert wird.",
+      salePriceMode:
+        "Wählt, ob der eingegebene Betrag als Brutto- oder Netto-Verkaufspreis gelesen wird.",
       saleAfterMonths:
         "Monat des Verkaufs relativ zum Start. Standard ist das Kreditende; früherer Verkauf wird für die TCO berücksichtigt, wenn er über die Monatszahl aktiviert ist.",
       termMonths: "Laufzeit in Monaten. Sie steuert die zeitliche Verteilung von Zahlungen und Abzügen.",
@@ -300,7 +308,8 @@ const UI_TEXT = {
       annualChargingGross: "Charging p.a. gross",
       annualMaintenanceGross: "Maintenance p.a. gross",
       annualTiresGross: "Tires p.a. gross",
-      salePriceNet: "Sale price net",
+      salePriceNet: "Sale price",
+      salePriceMode: "Price mode",
       saleAfterMonths: "Sale after months",
       termMonths: "Term",
       monthlyRateGross: "Gross payment",
@@ -315,6 +324,10 @@ const UI_TEXT = {
       gewstHebesatz: "GewSt rate",
       kst: "CIT",
       soliOnKSt: "Soli on CIT",
+    },
+    priceModes: {
+      gross: "Gross",
+      net: "Net",
     },
     options: {
       new: "New",
@@ -395,7 +408,9 @@ const UI_TEXT = {
       annualMaintenanceGross: "Operating expense in cash flow. Deductible VAT is recovered when invoiced with VAT.",
       annualTiresGross: "Operating expense in cash flow. Deductible VAT is recovered when invoiced with VAT.",
       salePriceNet:
-        "Net resale proceeds at the end of use. It reduces TCO and creates taxable gain versus the remaining book value.",
+        "Sale proceeds at the end of use. The price mode decides whether the entered amount is treated as gross or net.",
+      salePriceMode:
+        "Chooses whether the entered amount is interpreted as a gross or net sale price.",
       saleAfterMonths:
         "Month of sale relative to the start date. The default is the loan end; if enabled, the calculator uses this month for TCO and the final-year gain.",
       termMonths: "Term in months. It drives the timing of payments and deductions.",
@@ -492,7 +507,8 @@ const UI_TEXT = {
       annualChargingGross: "Зарядка в год gross",
       annualMaintenanceGross: "Сервис в год gross",
       annualTiresGross: "Шины в год gross",
-      salePriceNet: "Цена продажи net",
+      salePriceNet: "Цена продажи",
+      salePriceMode: "Режим цены",
       saleAfterMonths: "Продажа через мес.",
       termMonths: "Срок",
       monthlyRateGross: "Платёж gross",
@@ -507,6 +523,10 @@ const UI_TEXT = {
       gewstHebesatz: "Коэффициент GewSt",
       kst: "KSt",
       soliOnKSt: "Soli на KSt",
+    },
+    priceModes: {
+      gross: "Брутто",
+      net: "Нетто",
     },
     options: {
       new: "Новое",
@@ -587,7 +607,9 @@ const UI_TEXT = {
       annualMaintenanceGross: "Betriebsausgabe в cash flow. При счете с НДС Vorsteuer вычитается отдельно.",
       annualTiresGross: "Betriebsausgabe в cash flow. При счете с НДС Vorsteuer вычитается отдельно.",
       salePriceNet:
-        "Чистая цена продажи в конце использования. Она снижает TCO и создаёт налогооблагаемую прибыль по сравнению с остаточной стоимостью.",
+        "Сумма продажи в конце использования. Режим цены определяет, интерпретируется ли введённое значение как gross или net.",
+      salePriceMode:
+        "Выбирает, считать введённую сумму валовой или чистой ценой продажи.",
       saleAfterMonths:
         "Месяц продажи от начала сценария. По умолчанию это конец кредита; если включить поле, он участвует в TCO и в прибыли финального года.",
       termMonths: "Срок договора в месяцах. Он определяет распределение платежей и вычетов.",
@@ -771,6 +793,46 @@ function SelectField<T extends string>({
   );
 }
 
+function ToggleField<T extends string>({
+  label,
+  value,
+  options,
+  onChange,
+  help,
+}: {
+  label: string;
+  value: T;
+  options: { value: T; label: string }[];
+  onChange: (value: T) => void;
+  help?: string;
+}) {
+  const inputId = useId();
+  return (
+    <div className="field">
+      <div className="fieldLabelRow">
+        <label htmlFor={inputId}>{label}</label>
+        {help ? <TooltipButton help={help} label={label} /> : null}
+      </div>
+      <div className="modeToggleGroup" role="group" aria-label={label}>
+        {options.map((option) => {
+          const active = option.value === value;
+          return (
+            <button
+              key={option.value}
+              type="button"
+              className={`modeToggleButton${active ? " isActive" : ""}`}
+              aria-pressed={active}
+              onClick={() => onChange(option.value)}
+            >
+              {option.label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function TooltipButton({ help, label }: { help: string; label: string }) {
   return (
     <button
@@ -893,6 +955,11 @@ function loadAppState(): AppState {
           typeof scenario.car.annualTiresGrossEnabled === "boolean"
             ? scenario.car.annualTiresGrossEnabled
             : finiteNumber(scenario.car.annualTiresGross, 0) > 0,
+        salePriceMode: (scenario.car.salePriceMode === "net"
+          ? "net"
+          : finiteNumber(scenario.car.salePriceNet, 0) > 0
+            ? "net"
+            : "gross") as SalePriceMode,
         salePriceNet: finiteNumber(scenario.car.salePriceNet, 0),
         salePriceNetEnabled:
           typeof scenario.car.salePriceNetEnabled === "boolean"
@@ -967,6 +1034,7 @@ function newScenario(kind: ScenarioKind, ui: UiText = UI_TEXT.de, settings: TaxS
     annualMaintenanceGrossEnabled: false,
     annualTiresGross: kind === "credit-used" ? 300 : 250,
     annualTiresGrossEnabled: false,
+    salePriceMode: "gross",
     salePriceNet: 0,
     salePriceNetEnabled: false,
     saleAfterMonths: 0,
@@ -1469,6 +1537,21 @@ function ScenarioEditor({
                 }
                 suffix="EUR"
                 help={ui.help.feesGross}
+              />
+              <ToggleField<"gross" | "net">
+                label={ui.fields.salePriceMode}
+                value={selected.car.salePriceMode ?? "gross"}
+                options={[
+                  { value: "gross", label: ui.priceModes.gross },
+                  { value: "net", label: ui.priceModes.net },
+                ]}
+                onChange={(salePriceMode) =>
+                  onUpdateScenario({
+                    ...selected,
+                    car: { ...selected.car, salePriceMode },
+                  })
+                }
+                help={ui.help.salePriceMode}
               />
               <NumberField
                 label={ui.fields.salePriceNet}

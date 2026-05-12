@@ -432,6 +432,41 @@ button:disabled {
   outline-offset: 2px;
 }
 
+.modeToggleGroup {
+  display: inline-flex;
+  width: 100%;
+  min-height: 36px;
+  border: 1px solid #d6cdc3;
+  border-radius: 7px;
+  overflow: hidden;
+  background: #f3f0ec;
+}
+
+.modeToggleButton {
+  flex: 1 1 0;
+  border: 0;
+  background: transparent;
+  color: #766d65;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 7px 10px;
+  cursor: pointer;
+}
+
+.modeToggleButton + .modeToggleButton {
+  border-left: 1px solid #d6cdc3;
+}
+
+.modeToggleButton.isActive {
+  background: var(--accent);
+  color: #ffffff;
+}
+
+.modeToggleButton:focus-visible {
+  outline: 2px solid var(--accent-outline);
+  outline-offset: -2px;
+}
+
 .field input,
 .field select {
   width: 100%;

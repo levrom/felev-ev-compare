@@ -1,6 +1,7 @@
 export type VatMode = "regular" | "none";
 export type ScenarioKind = "lease" | "credit-new" | "credit-used";
 export type PrivateUseMethod = "auto-bev" | "fixed-rate";
+export type SalePriceMode = "gross" | "net";
 
 export type CarInput = {
   name: string;
@@ -28,6 +29,7 @@ export type CarInput = {
   annualMaintenanceGrossEnabled: boolean;
   annualTiresGross: number;
   annualTiresGrossEnabled: boolean;
+  salePriceMode: SalePriceMode;
   salePriceNet: number;
   salePriceNetEnabled: boolean;
   saleAfterMonths: number;
@@ -165,6 +167,30 @@ export function splitVat(gross: number, vatRate: number, vatMode: VatMode) {
 
   const net = normalizedGross / (1 + normalizedVatRate);
   return { gross: normalizedGross, vat: normalizedGross - net, net };
+}
+
+export function resolveSalePrice(
+  car: Pick<CarInput, "salePriceMode" | "salePriceNet" | "vatRate" | "vatMode">,
+) {
+  const amount = Math.max(0, finiteNumber(car.salePriceNet, 0));
+  const vatRate = finiteNumber(car.vatRate, DEFAULT_TAX_SETTINGS.vatRate);
+
+  if (car.salePriceMode === "gross") {
+    const split = splitVat(amount, vatRate, car.vatMode);
+    return {
+      gross: split.gross,
+      net: split.net,
+      vat: split.vat,
+    };
+  }
+
+  const net = amount;
+  const gross = car.vatMode === "none" ? net : net * (1 + vatRate);
+  return {
+    gross,
+    net,
+    vat: gross - net,
+  };
 }
 
 export function resolvePrivateUseRate(car: Pick<CarInput, "blpGross" | "privateUseRate" | "privateUseMethod">) {
@@ -435,6 +461,7 @@ function normalizeScenario(scenario: ScenarioInput): ScenarioInput {
       typeof scenario.car?.annualTiresGrossEnabled === "boolean"
         ? scenario.car.annualTiresGrossEnabled
         : finiteNumber(scenario.car?.annualTiresGross, 0) > 0,
+    salePriceMode: (scenario.car?.salePriceMode === "net" ? "net" : "gross") as SalePriceMode,
     salePriceNet: finiteNumber(scenario.car?.salePriceNet, 0),
     salePriceNetEnabled:
       typeof scenario.car?.salePriceNetEnabled === "boolean"
@@ -562,8 +589,8 @@ function calculateCreditScenario(
   const fees = splitVat(credit.feesGross, car.vatRate, "regular");
   const runningCosts = annualRunningCosts(car);
   const privateUse = calculatePrivateUseTax(car);
-  const salePriceNet = car.salePriceNetEnabled ? Math.max(0, finiteNumber(car.salePriceNet, 0)) : 0;
-  const saleEnabled = salePriceNet > 0;
+  const salePrice = car.salePriceNetEnabled ? resolveSalePrice(car) : { gross: 0, net: 0, vat: 0 };
+  const saleEnabled = salePrice.net > 0 || salePrice.gross > 0;
   const saleAfterMonthsRaw = car.saleAfterMonthsEnabled
     ? Math.max(1, Math.round(finiteNumber(car.saleAfterMonths, credit.termMonths)))
     : credit.termMonths;
@@ -613,9 +640,9 @@ function calculateCreditScenario(
     const runningVat = prorateAnnualCost(runningCosts.vat, ownershipMonths);
     const runningNet = prorateAnnualCost(runningCosts.net, ownershipMonths);
     const afa = annualAfa * (afaActiveMonths / 12);
-    const saleProceedsNet = saleEnabled && year === saleYear ? salePriceNet : 0;
-    const saleGainTaxable = saleEnabled && year === saleYear ? salePriceNet - saleRemainingBookValue : 0;
-    const grossCashOut = paymentGross * months + finalPayment + firstYearCash + runningGross - saleProceedsNet;
+    const saleProceedsGross = saleEnabled && year === saleYear ? salePrice.gross : 0;
+    const saleGainTaxable = saleEnabled && year === saleYear ? salePrice.net - saleRemainingBookValue : 0;
+    const grossCashOut = paymentGross * months + finalPayment + firstYearCash + runningGross - saleProceedsGross;
     const deductibleExpense = interest + afa + runningNet;
     const gewstAddbackBase = interest;
     const addback = gewstAddback(gewstAddbackBase, settings);
