@@ -3,6 +3,7 @@ import {
   DEFAULT_TAX_SETTINGS,
   buildCreditSchedule,
   calculateScenario,
+  calculatePrivateUseTax,
   splitVat,
   resolvePrivateUseRate,
   type ScenarioInput,
@@ -48,6 +49,8 @@ describe("scenario calculations", () => {
     commuteDistanceKmEnabled: false,
     commuteMonthsPerYear: 12,
     commuteMonthsPerYearEnabled: false,
+    commuteDaysPerMonth: 0,
+    commuteDaysPerMonthEnabled: false,
     annualInsuranceGross: 0,
     annualInsuranceGrossEnabled: false,
     annualChargingGross: 0,
@@ -56,6 +59,10 @@ describe("scenario calculations", () => {
     annualMaintenanceGrossEnabled: false,
     annualTiresGross: 0,
     annualTiresGrossEnabled: false,
+    salePriceNet: 0,
+    salePriceNetEnabled: false,
+    saleAfterMonths: 0,
+    saleAfterMonthsEnabled: false,
   };
 
   it("recovers purchase VAT for a new car and keeps VAT out of AfA", () => {
@@ -202,6 +209,47 @@ describe("scenario calculations", () => {
     ).toBeCloseTo(0.001);
   });
 
+  it("calculates VAT on private use and supports the daily commute method", () => {
+    const privateUse = calculatePrivateUseTax({
+      ...baseCar,
+      commuteDistanceKm: 20,
+      commuteDistanceKmEnabled: true,
+      commuteMonthsPerYear: 12,
+      commuteMonthsPerYearEnabled: true,
+      commuteDaysPerMonth: 10,
+      commuteDaysPerMonthEnabled: true,
+    });
+
+    expect(privateUse.commuteMethod).toBe("daily");
+    expect(privateUse.privateUseBenefitAnnual).toBeCloseTo(60000 * 0.0025 * 12 + 60000 * 0.0025 * 0.002 * 20 * 120);
+    expect(privateUse.privateUseVatAnnual).toBeCloseTo(privateUse.privateUseBenefitAnnual * 0.19);
+  });
+
+  it("adds sale gain to the final-year taxable profit when a resale value is entered", () => {
+    const scenario: ScenarioInput = {
+      id: "credit-sale",
+      kind: "credit-new",
+      car: {
+        ...baseCar,
+        purchasePriceGross: 11900,
+        salePriceNet: 10000,
+        salePriceNetEnabled: true,
+      },
+      credit: {
+        termMonths: 12,
+        downPaymentGross: 0,
+        annualInterestRate: 0,
+        balloonGross: 0,
+        acquisitionCostsGross: 0,
+        feesGross: 0,
+      },
+    };
+
+    const result = calculateScenario(scenario);
+    expect(result.totalSaleGainTaxable).toBeCloseTo(1666.666666666666);
+    expect(result.years[0].saleGainTaxable).toBeCloseTo(1666.666666666666);
+  });
+
   it("reports the credit horizon over finance term or depreciation horizon", () => {
     const scenario: ScenarioInput = {
       id: "credit-horizon",
@@ -236,6 +284,10 @@ describe("scenario calculations", () => {
         annualChargingGrossEnabled: true,
         annualMaintenanceGross: 0,
         annualTiresGross: 0,
+        commuteDaysPerMonth: 0,
+        commuteDaysPerMonthEnabled: false,
+        salePriceNet: 0,
+        salePriceNetEnabled: false,
       },
       lease: {
         termMonths: 12,
@@ -261,6 +313,10 @@ describe("scenario calculations", () => {
         startMonth: 7,
         annualInsuranceGross: 1200,
         annualInsuranceGrossEnabled: true,
+        commuteDaysPerMonth: 0,
+        commuteDaysPerMonthEnabled: false,
+        salePriceNet: 0,
+        salePriceNetEnabled: false,
       },
       credit: {
         termMonths: 12,
@@ -291,6 +347,10 @@ describe("scenario calculations", () => {
         vatRate: 0.19,
         vatMode: "regular",
         firstRegistrationYear: 2026,
+        commuteDaysPerMonth: 0,
+        commuteDaysPerMonthEnabled: false,
+        salePriceNet: 0,
+        salePriceNetEnabled: false,
       },
       lease: {
         termMonths: 12,
@@ -303,7 +363,8 @@ describe("scenario calculations", () => {
     const result = calculateScenario(scenario);
     expect(result.totalGrossCashOut).toBeCloseTo(14280);
     expect(result.totalVorsteuer).toBeCloseTo(2280);
-    expect(result.totalNetCashOut).toBeCloseTo(12000);
+    expect(result.totalNetCashOut).toBeCloseTo(12342);
     expect(result.privateUseBenefitAnnual).toBeCloseTo(1800);
+    expect(result.totalPrivateUseVat).toBeCloseTo(342);
   });
 });

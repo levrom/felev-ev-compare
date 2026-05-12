@@ -18,6 +18,8 @@ export type CarInput = {
   commuteDistanceKmEnabled: boolean;
   commuteMonthsPerYear: number;
   commuteMonthsPerYearEnabled: boolean;
+  commuteDaysPerMonth: number;
+  commuteDaysPerMonthEnabled: boolean;
   annualInsuranceGross: number;
   annualInsuranceGrossEnabled: boolean;
   annualChargingGross: number;
@@ -26,6 +28,10 @@ export type CarInput = {
   annualMaintenanceGrossEnabled: boolean;
   annualTiresGross: number;
   annualTiresGrossEnabled: boolean;
+  salePriceNet: number;
+  salePriceNetEnabled: boolean;
+  saleAfterMonths: number;
+  saleAfterMonthsEnabled: boolean;
 };
 
 export type LeaseInput = {
@@ -70,6 +76,7 @@ export type YearBreakdown = {
   months: number;
   grossCashOut: number;
   vorsteuer: number;
+  privateUseVat: number;
   netCashOut: number;
   deductibleExpense: number;
   afa: number;
@@ -77,6 +84,7 @@ export type YearBreakdown = {
   principal: number;
   gewstAddbackBase: number;
   gewstAddback: number;
+  saleGainTaxable: number;
   taxableProfitAfterCar: number;
   kstSaving: number;
   soliSaving: number;
@@ -92,16 +100,19 @@ export type ScenarioResult = {
   monthlyPaymentGross: number;
   totalGrossCashOut: number;
   totalVorsteuer: number;
+  totalPrivateUseVat: number;
   totalNetCashOut: number;
   totalDeductibleExpense: number;
   totalGewstAddbackBase: number;
   totalGewstAddback: number;
   gewstAddbackRate: number;
   totalTaxSaving: number;
+  totalSaleGainTaxable: number;
   afterTaxTotalCost: number;
   afterTaxMonthlyEquivalent: number;
   evaluationMonths: number;
   privateUseBenefitAnnual: number;
+  privateUseVatAnnual: number;
   vatBasisForAfa: number;
   balloonGross: number;
   years: YearBreakdown[];
@@ -161,6 +172,56 @@ export function resolvePrivateUseRate(car: Pick<CarInput, "blpGross" | "privateU
   const blpGross = finiteNumber(car.blpGross, 0);
   if (car.privateUseMethod !== "auto-bev") return privateUseRate;
   return blpGross <= 100000 ? 0.0025 : 0.005;
+}
+
+export function calculatePrivateUseTax(
+  car: Pick<
+    CarInput,
+    | "blpGross"
+    | "privateUseRate"
+    | "privateUseMethod"
+    | "commuteDistanceKm"
+    | "commuteDistanceKmEnabled"
+    | "commuteMonthsPerYear"
+    | "commuteMonthsPerYearEnabled"
+    | "commuteDaysPerMonth"
+    | "commuteDaysPerMonthEnabled"
+    | "vatRate"
+  >,
+) {
+  const privateUseRate = resolvePrivateUseRate(car);
+  const blpGross = finiteNumber(car.blpGross, 0);
+  const commuteDistanceKm = car.commuteDistanceKmEnabled ? Math.max(0, finiteNumber(car.commuteDistanceKm, 0)) : 0;
+  const commuteMonthsPerYear = car.commuteMonthsPerYearEnabled
+    ? Math.max(0, Math.min(12, Math.round(finiteNumber(car.commuteMonthsPerYear, 12))))
+    : 0;
+  const commuteDaysPerMonth = car.commuteDaysPerMonthEnabled
+    ? Math.max(0, Math.round(finiteNumber(car.commuteDaysPerMonth, 0)))
+    : 0;
+  const useDailyMethod = commuteDaysPerMonthEnabled(car) && commuteDaysPerMonth > 0 && commuteDaysPerMonth < 15;
+  const commuteBase = useDailyMethod ? 0.002 : 0.03;
+  const commuteUnitCount = useDailyMethod ? commuteDaysPerMonth * Math.max(1, commuteMonthsPerYear) : commuteMonthsPerYear;
+  const baseBenefitAnnual = blpGross * privateUseRate * 12;
+  const commuteBenefitAnnual = blpGross * privateUseRate * commuteBase * commuteDistanceKm * commuteUnitCount;
+  const privateUseBenefitAnnual = baseBenefitAnnual + commuteBenefitAnnual;
+  const vatRate = finiteNumber(car.vatRate, DEFAULT_TAX_SETTINGS.vatRate);
+  const privateUseVatAnnual = privateUseBenefitAnnual * vatRate;
+
+  return {
+    privateUseRate,
+    baseBenefitAnnual,
+    commuteBenefitAnnual,
+    privateUseBenefitAnnual,
+    privateUseVatAnnual,
+    privateUseVatRate: vatRate,
+    commuteMethod: useDailyMethod ? ("daily" as const) : ("monthly" as const),
+  };
+}
+
+function commuteDaysPerMonthEnabled(
+  car: Pick<CarInput, "commuteDaysPerMonthEnabled">,
+) {
+  return typeof car.commuteDaysPerMonthEnabled === "boolean" ? car.commuteDaysPerMonthEnabled : false;
 }
 
 function normalizeStartMonth(startMonth: number) {
@@ -275,7 +336,7 @@ function prorateAnnualCost(value: number, activeMonths: number) {
   return finiteNumber(value, 0) * (finiteNumber(activeMonths, 0) / 12);
 }
 
-function calculateGewst(taxableProfit: number, settings: TaxSettings) {
+export function calculateGewst(taxableProfit: number, settings: TaxSettings) {
   const roundedGewerbeertrag = Math.floor(Math.max(0, finiteNumber(taxableProfit, 0)) / 100) * 100;
   const gewstMeasureRate = finiteNumber(settings.gewstMeasureRate, DEFAULT_TAX_SETTINGS.gewstMeasureRate);
   const berlinHebesatz = finiteNumber(settings.berlinHebesatz, DEFAULT_TAX_SETTINGS.berlinHebesatz);
@@ -349,6 +410,11 @@ function normalizeScenario(scenario: ScenarioInput): ScenarioInput {
       typeof scenario.car?.commuteMonthsPerYearEnabled === "boolean"
         ? scenario.car.commuteMonthsPerYearEnabled
         : finiteNumber(scenario.car?.commuteDistanceKm, 0) > 0,
+    commuteDaysPerMonth: finiteNumber(scenario.car?.commuteDaysPerMonth, 0),
+    commuteDaysPerMonthEnabled:
+      typeof scenario.car?.commuteDaysPerMonthEnabled === "boolean"
+        ? scenario.car.commuteDaysPerMonthEnabled
+        : false,
     annualInsuranceGross: finiteNumber(scenario.car?.annualInsuranceGross, 0),
     annualInsuranceGrossEnabled:
       typeof scenario.car?.annualInsuranceGrossEnabled === "boolean"
@@ -369,6 +435,16 @@ function normalizeScenario(scenario: ScenarioInput): ScenarioInput {
       typeof scenario.car?.annualTiresGrossEnabled === "boolean"
         ? scenario.car.annualTiresGrossEnabled
         : finiteNumber(scenario.car?.annualTiresGross, 0) > 0,
+    salePriceNet: finiteNumber(scenario.car?.salePriceNet, 0),
+    salePriceNetEnabled:
+      typeof scenario.car?.salePriceNetEnabled === "boolean"
+        ? scenario.car.salePriceNetEnabled
+        : finiteNumber(scenario.car?.salePriceNet, 0) > 0,
+    saleAfterMonths: finiteNumber(scenario.car?.saleAfterMonths, 0),
+    saleAfterMonthsEnabled:
+      typeof scenario.car?.saleAfterMonthsEnabled === "boolean"
+        ? scenario.car.saleAfterMonthsEnabled
+        : false,
   };
 
   return {
@@ -405,6 +481,13 @@ export function calculateScenario(
   scenario: ScenarioInput,
   settings: TaxSettings = DEFAULT_TAX_SETTINGS,
 ): ScenarioResult {
+  return calculateTCO(scenario, settings);
+}
+
+export function calculateTCO(
+  scenario: ScenarioInput,
+  settings: TaxSettings = DEFAULT_TAX_SETTINGS,
+): ScenarioResult {
   const normalizedScenario = normalizeScenario(scenario);
   if (normalizedScenario.kind === "lease") {
     return calculateLeaseScenario(normalizedScenario, settings);
@@ -422,6 +505,7 @@ function calculateLeaseScenario(
   const special = splitVat(lease.specialPaymentGross, car.vatRate, "regular");
   const fees = splitVat(lease.feesGross, car.vatRate, "regular");
   const runningCosts = annualRunningCosts(car);
+  const privateUse = calculatePrivateUseTax(car);
   const totalYears = calendarYears(lease.termMonths, car.startMonth);
 
   const years = Array.from({ length: totalYears }, (_, index): YearBreakdown => {
@@ -439,6 +523,7 @@ function calculateLeaseScenario(
     const deductibleExpense = monthly.net * months + firstYearNet + runningNet;
     const gewstAddbackBase = leasePaymentNet * 0.1;
     const addback = gewstAddback(gewstAddbackBase, settings);
+    const privateUseVat = privateUse.privateUseVatAnnual * (months / 12);
     const taxableProfitAfterCar =
       settings.baseAnnualProfit - deductibleExpense + addback;
     const taxes = taxSaving(settings.baseAnnualProfit, taxableProfitAfterCar, settings);
@@ -448,20 +533,22 @@ function calculateLeaseScenario(
       months,
       grossCashOut,
       vorsteuer,
-      netCashOut: grossCashOut - vorsteuer,
+      privateUseVat,
+      netCashOut: grossCashOut - vorsteuer + privateUseVat,
       deductibleExpense,
       afa: 0,
       interest: 0,
       principal: 0,
       gewstAddbackBase,
       gewstAddback: addback,
+      saleGainTaxable: 0,
       taxableProfitAfterCar,
       ...taxes,
-      afterTaxCost: grossCashOut - vorsteuer - taxes.totalTaxSaving,
+      afterTaxCost: grossCashOut - vorsteuer + privateUseVat - taxes.totalTaxSaving,
     };
   });
 
-  return summarizeScenario(scenario, years, monthly.gross, 0);
+  return summarizeScenario(scenario, years, monthly.gross, 0, privateUse.privateUseVatAnnual);
 }
 
 function calculateCreditScenario(
@@ -474,6 +561,13 @@ function calculateCreditScenario(
   const acquisitionCosts = splitVat(credit.acquisitionCostsGross, car.vatRate, "regular");
   const fees = splitVat(credit.feesGross, car.vatRate, "regular");
   const runningCosts = annualRunningCosts(car);
+  const privateUse = calculatePrivateUseTax(car);
+  const salePriceNet = car.salePriceNetEnabled ? Math.max(0, finiteNumber(car.salePriceNet, 0)) : 0;
+  const saleEnabled = salePriceNet > 0;
+  const saleAfterMonthsRaw = car.saleAfterMonthsEnabled
+    ? Math.max(1, Math.round(finiteNumber(car.saleAfterMonths, credit.termMonths)))
+    : credit.termMonths;
+  const saleAfterMonths = saleEnabled ? Math.max(credit.termMonths, saleAfterMonthsRaw) : 0;
   const financedPrincipal = Math.max(
     0,
     car.purchasePriceGross - credit.downPaymentGross,
@@ -486,14 +580,20 @@ function calculateCreditScenario(
   );
   const afaYears = scenario.kind === "credit-new" ? 6 : Math.max(1, car.afaYears);
   const afaMonths = afaYears * 12;
-  const evaluationMonths = Math.max(credit.termMonths, afaMonths);
+  const evaluationMonths = saleEnabled ? Math.max(credit.termMonths, saleAfterMonths) : Math.max(credit.termMonths, afaMonths);
   const afaBasis = purchase.net + acquisitionCosts.net;
   const annualAfa = afaBasis / afaYears;
-  const totalYears = Math.max(
-    calendarYears(credit.termMonths, car.startMonth),
-    calendarYears(afaMonths, car.startMonth),
-  );
+  const totalYears = saleEnabled
+    ? Math.max(calendarYears(credit.termMonths, car.startMonth), calendarYears(saleAfterMonths, car.startMonth))
+    : Math.max(
+        calendarYears(credit.termMonths, car.startMonth),
+        calendarYears(afaMonths, car.startMonth),
+      );
   const paymentGross = schedule[0]?.paymentGross ?? 0;
+  const saleYear = saleEnabled ? calendarYears(saleAfterMonths, car.startMonth) : 0;
+  const saleRemainingBookValue = saleEnabled
+    ? Math.max(0, afaBasis - annualAfa * (saleAfterMonths / 12))
+    : 0;
 
   const years = Array.from({ length: totalYears }, (_, index): YearBreakdown => {
     const year = index + 1;
@@ -513,12 +613,15 @@ function calculateCreditScenario(
     const runningVat = prorateAnnualCost(runningCosts.vat, ownershipMonths);
     const runningNet = prorateAnnualCost(runningCosts.net, ownershipMonths);
     const afa = annualAfa * (afaActiveMonths / 12);
-    const grossCashOut = paymentGross * months + finalPayment + firstYearCash + runningGross;
+    const saleProceedsNet = saleEnabled && year === saleYear ? salePriceNet : 0;
+    const saleGainTaxable = saleEnabled && year === saleYear ? salePriceNet - saleRemainingBookValue : 0;
+    const grossCashOut = paymentGross * months + finalPayment + firstYearCash + runningGross - saleProceedsNet;
     const deductibleExpense = interest + afa + runningNet;
     const gewstAddbackBase = interest;
     const addback = gewstAddback(gewstAddbackBase, settings);
+    const privateUseVat = privateUse.privateUseVatAnnual * (ownershipMonths / 12);
     const taxableProfitAfterCar =
-      settings.baseAnnualProfit - deductibleExpense + addback;
+      settings.baseAnnualProfit - deductibleExpense + addback + saleGainTaxable;
     const taxes = taxSaving(settings.baseAnnualProfit, taxableProfitAfterCar, settings);
 
     return {
@@ -526,20 +629,22 @@ function calculateCreditScenario(
       months,
       grossCashOut,
       vorsteuer: firstYearVat + runningVat,
-      netCashOut: grossCashOut - firstYearVat - runningVat,
+      privateUseVat,
+      netCashOut: grossCashOut - firstYearVat - runningVat + privateUseVat,
       deductibleExpense,
       afa,
       interest,
       principal,
       gewstAddbackBase,
       gewstAddback: addback,
+      saleGainTaxable,
       taxableProfitAfterCar,
       ...taxes,
-      afterTaxCost: grossCashOut - firstYearVat - runningVat - taxes.totalTaxSaving,
+      afterTaxCost: grossCashOut - firstYearVat - runningVat + privateUseVat - taxes.totalTaxSaving,
     };
   });
 
-  return summarizeScenario(scenario, years, paymentGross, afaBasis);
+  return summarizeScenario(scenario, years, paymentGross, afaBasis, privateUse.privateUseVatAnnual);
 }
 
 function summarizeScenario(
@@ -547,9 +652,11 @@ function summarizeScenario(
   years: YearBreakdown[],
   monthlyPaymentGross: number,
   vatBasisForAfa: number,
+  privateUseVatAnnual: number,
 ): ScenarioResult {
   const totalGrossCashOut = years.reduce((sum, row) => sum + row.grossCashOut, 0);
   const totalVorsteuer = years.reduce((sum, row) => sum + row.vorsteuer, 0);
+  const totalPrivateUseVat = years.reduce((sum, row) => sum + row.privateUseVat, 0);
   const totalNetCashOut = years.reduce((sum, row) => sum + row.netCashOut, 0);
   const totalDeductibleExpense = years.reduce(
     (sum, row) => sum + row.deductibleExpense,
@@ -557,22 +664,28 @@ function summarizeScenario(
   );
   const totalGewstAddbackBase = years.reduce((sum, row) => sum + row.gewstAddbackBase, 0);
   const totalGewstAddback = years.reduce((sum, row) => sum + row.gewstAddback, 0);
+  const totalSaleGainTaxable = years.reduce((sum, row) => sum + row.saleGainTaxable, 0);
   const totalTaxSaving = years.reduce((sum, row) => sum + row.totalTaxSaving, 0);
   const termMonths =
     scenario.kind === "lease"
       ? scenario.lease?.termMonths ?? 1
       : scenario.credit?.termMonths ?? 1;
-  const afaMonths = scenario.kind === "lease" ? 0 : Math.max(1, scenario.car.afaYears) * 12;
-  const evaluationMonths = scenario.kind === "lease" ? termMonths : Math.max(termMonths, afaMonths);
-  const privateUseRate = resolvePrivateUseRate(scenario.car);
-  const commuteMonths = scenario.car.commuteMonthsPerYearEnabled
-    ? Math.max(0, Math.min(12, scenario.car.commuteMonthsPerYear))
+  const saleEnabled = scenario.kind !== "lease" && scenario.car.salePriceNetEnabled && scenario.car.salePriceNet > 0;
+  const saleAfterMonths = saleEnabled
+    ? Math.max(
+        termMonths,
+        scenario.car.saleAfterMonthsEnabled
+          ? Math.max(1, Math.round(finiteNumber(scenario.car.saleAfterMonths, termMonths)))
+          : termMonths,
+      )
     : 0;
-  const commuteDistanceKm = scenario.car.commuteDistanceKmEnabled
-    ? Math.max(0, scenario.car.commuteDistanceKm)
-    : 0;
-  const commuteBenefitAnnual =
-    scenario.car.blpGross * privateUseRate * 0.03 * commuteDistanceKm * commuteMonths;
+  const afaMonths = scenario.kind === "lease" || saleEnabled ? 0 : Math.max(1, scenario.car.afaYears) * 12;
+  const evaluationMonths = scenario.kind === "lease"
+    ? termMonths
+    : saleEnabled
+      ? Math.max(termMonths, saleAfterMonths)
+      : Math.max(termMonths, afaMonths);
+  const privateUse = calculatePrivateUseTax(scenario.car);
 
   return {
     id: scenario.id,
@@ -581,16 +694,19 @@ function summarizeScenario(
     monthlyPaymentGross,
     totalGrossCashOut,
     totalVorsteuer,
+    totalPrivateUseVat,
     totalNetCashOut,
     totalDeductibleExpense,
     totalGewstAddbackBase,
     totalGewstAddback,
     gewstAddbackRate: totalDeductibleExpense > 0 ? totalGewstAddback / totalDeductibleExpense : 0,
     totalTaxSaving,
+    totalSaleGainTaxable,
     afterTaxTotalCost: totalNetCashOut - totalTaxSaving,
     afterTaxMonthlyEquivalent: (totalNetCashOut - totalTaxSaving) / evaluationMonths,
     evaluationMonths,
-    privateUseBenefitAnnual: scenario.car.blpGross * privateUseRate * 12 + commuteBenefitAnnual,
+    privateUseBenefitAnnual: privateUse.privateUseBenefitAnnual,
+    privateUseVatAnnual,
     vatBasisForAfa,
     balloonGross: scenario.credit?.balloonGross ?? 0,
     years,

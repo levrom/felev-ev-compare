@@ -103,10 +103,13 @@ const UI_TEXT = {
       privateUseRate: "Privatnutzungssatz",
       commuteDistanceKm: "Arbeitsweg einfach",
       commuteMonthsPerYear: "Arbeitsweg Monate p.a.",
+      commuteDaysPerMonth: "Arbeitsweg Tage p. M.",
       annualInsuranceGross: "Versicherung p.a.",
       annualChargingGross: "Laden p.a. brutto",
       annualMaintenanceGross: "Wartung p.a. brutto",
       annualTiresGross: "Reifen p.a. brutto",
+      salePriceNet: "Verkauf netto",
+      saleAfterMonths: "Verkauf nach Monaten",
       termMonths: "Laufzeit",
       monthlyRateGross: "Rate brutto",
       specialPaymentGross: "Sonderzahlung brutto",
@@ -193,10 +196,16 @@ const UI_TEXT = {
       privateUseRate: "Monatlicher Privatnutzungssatz. Er geht in die private-use-Zeile ein, nicht in die Betriebskosten.",
       commuteDistanceKm: "Einfache Entfernung zur ersten Tätigkeitsstätte. Sie erhöht den geldwerten Vorteil.",
       commuteMonthsPerYear: "Anzahl der Monate pro Jahr für den Arbeitsweg. Mehr Monate erhöhen den privaten Nutzungswert.",
+      commuteDaysPerMonth:
+        "Monatliche Arbeitstage für die 0,002%-Methode. Unter 15 Tagen pro Monat schaltet das Tool auf die Tagesmethode um.",
       annualInsuranceGross: "Betriebsausgabe im Cashflow. Bei Versicherung wird hier typischerweise keine Vorsteuer gezogen.",
       annualChargingGross: "Betriebsausgabe im Cashflow. Bei USt-Rechnung wird die Vorsteuer separat abgezogen.",
       annualMaintenanceGross: "Betriebsausgabe im Cashflow. Bei USt-Rechnung wird die Vorsteuer separat abgezogen.",
       annualTiresGross: "Betriebsausgabe im Cashflow. Bei USt-Rechnung wird die Vorsteuer separat abgezogen.",
+      salePriceNet:
+        "Netto-Verkaufserlös am Ende der Nutzung. Er senkt die TCO und erzeugt einen steuerpflichtigen Veräußerungsgewinn gegen den Restbuchwert.",
+      saleAfterMonths:
+        "Monat des Verkaufs relativ zum Start. Standard ist das Kreditende; früherer Verkauf wird für die TCO berücksichtigt, wenn er über die Monatszahl aktiviert ist.",
       termMonths: "Laufzeit in Monaten. Sie steuert die zeitliche Verteilung von Zahlungen und Abzügen.",
       monthlyRateGross: "Monatliche Leasingrate brutto. Sie fließt in Cashflow, Vorsteuer und den GewSt-Hinzurechnungsanteil ein.",
       specialPaymentGross: "Einmalige Zahlung zu Beginn. Sie erhöht Cashflow und Vorsteuer im ersten Jahr.",
@@ -286,10 +295,13 @@ const UI_TEXT = {
       privateUseRate: "Private-use rate",
       commuteDistanceKm: "Commute one-way",
       commuteMonthsPerYear: "Commute months p.a.",
+      commuteDaysPerMonth: "Commute days/mo",
       annualInsuranceGross: "Insurance p.a.",
       annualChargingGross: "Charging p.a. gross",
       annualMaintenanceGross: "Maintenance p.a. gross",
       annualTiresGross: "Tires p.a. gross",
+      salePriceNet: "Sale price net",
+      saleAfterMonths: "Sale after months",
       termMonths: "Term",
       monthlyRateGross: "Gross payment",
       specialPaymentGross: "Upfront payment",
@@ -376,10 +388,16 @@ const UI_TEXT = {
       privateUseRate: "Monthly private-use percentage. It enters the benefit row, not company expenses.",
       commuteDistanceKm: "One-way commute distance. It increases the private-use benefit amount.",
       commuteMonthsPerYear: "Number of months per year for the commute benefit. More months increase the benefit.",
+      commuteDaysPerMonth:
+        "Average commute days per month. Below 15 days the calculator uses the 0.002% daily commute rule.",
       annualInsuranceGross: "Operating expense in cash flow. Insurance usually has no deductible VAT.",
       annualChargingGross: "Operating expense in cash flow. Deductible VAT is recovered when invoiced with VAT.",
       annualMaintenanceGross: "Operating expense in cash flow. Deductible VAT is recovered when invoiced with VAT.",
       annualTiresGross: "Operating expense in cash flow. Deductible VAT is recovered when invoiced with VAT.",
+      salePriceNet:
+        "Net resale proceeds at the end of use. It reduces TCO and creates taxable gain versus the remaining book value.",
+      saleAfterMonths:
+        "Month of sale relative to the start date. The default is the loan end; if enabled, the calculator uses this month for TCO and the final-year gain.",
       termMonths: "Term in months. It drives the timing of payments and deductions.",
       monthlyRateGross: "Monthly leasing payment gross. It affects cash out, VAT, and the GewSt add-back base.",
       specialPaymentGross: "One-time upfront payment. It increases first-year cash out and VAT recovery.",
@@ -469,10 +487,13 @@ const UI_TEXT = {
       privateUseRate: "Личный процент",
       commuteDistanceKm: "Путь до работы в одну сторону",
       commuteMonthsPerYear: "Месяцы commute в год",
+      commuteDaysPerMonth: "Дни commute/мес",
       annualInsuranceGross: "Страховка в год",
       annualChargingGross: "Зарядка в год gross",
       annualMaintenanceGross: "Сервис в год gross",
       annualTiresGross: "Шины в год gross",
+      salePriceNet: "Цена продажи net",
+      saleAfterMonths: "Продажа через мес.",
       termMonths: "Срок",
       monthlyRateGross: "Платёж gross",
       specialPaymentGross: "Первый платёж",
@@ -559,10 +580,16 @@ const UI_TEXT = {
       privateUseRate: "Ежемесячный процент личного использования. Он идет в строку выгоды, а не в расходы компании.",
       commuteDistanceKm: "Расстояние до работы в одну сторону. Оно увеличивает geldwerter Vorteil.",
       commuteMonthsPerYear: "Сколько месяцев в год учитывать commute benefit. Больше месяцев — выше выгода.",
+      commuteDaysPerMonth:
+        "Среднее число дней commute в месяц. Ниже 15 дней калькулятор переключается на дневное правило 0,002%.",
       annualInsuranceGross: "Betriebsausgabe в cash flow. У страховки обычно нет входного НДС.",
       annualChargingGross: "Betriebsausgabe в cash flow. При счете с НДС Vorsteuer вычитается отдельно.",
       annualMaintenanceGross: "Betriebsausgabe в cash flow. При счете с НДС Vorsteuer вычитается отдельно.",
       annualTiresGross: "Betriebsausgabe в cash flow. При счете с НДС Vorsteuer вычитается отдельно.",
+      salePriceNet:
+        "Чистая цена продажи в конце использования. Она снижает TCO и создаёт налогооблагаемую прибыль по сравнению с остаточной стоимостью.",
+      saleAfterMonths:
+        "Месяц продажи от начала сценария. По умолчанию это конец кредита; если включить поле, он участвует в TCO и в прибыли финального года.",
       termMonths: "Срок договора в месяцах. Он определяет распределение платежей и вычетов.",
       monthlyRateGross: "Ежемесячный лизинговый платеж gross. Он влияет на cash flow, НДС и add-back по GewSt.",
       specialPaymentGross: "Разовый платеж в начале договора. Он увеличивает первый год cash out и Vorsteuer.",
@@ -841,6 +868,11 @@ function loadAppState(): AppState {
           typeof scenario.car.commuteMonthsPerYearEnabled === "boolean"
             ? scenario.car.commuteMonthsPerYearEnabled
             : finiteNumber(scenario.car.commuteDistanceKm, 0) > 0,
+        commuteDaysPerMonth: finiteNumber(scenario.car.commuteDaysPerMonth, 0),
+        commuteDaysPerMonthEnabled:
+          typeof scenario.car.commuteDaysPerMonthEnabled === "boolean"
+            ? scenario.car.commuteDaysPerMonthEnabled
+            : false,
         annualInsuranceGross: finiteNumber(scenario.car.annualInsuranceGross, 0),
         annualInsuranceGrossEnabled:
           typeof scenario.car.annualInsuranceGrossEnabled === "boolean"
@@ -861,6 +893,16 @@ function loadAppState(): AppState {
           typeof scenario.car.annualTiresGrossEnabled === "boolean"
             ? scenario.car.annualTiresGrossEnabled
             : finiteNumber(scenario.car.annualTiresGross, 0) > 0,
+        salePriceNet: finiteNumber(scenario.car.salePriceNet, 0),
+        salePriceNetEnabled:
+          typeof scenario.car.salePriceNetEnabled === "boolean"
+            ? scenario.car.salePriceNetEnabled
+            : finiteNumber(scenario.car.salePriceNet, 0) > 0,
+        saleAfterMonths: finiteNumber(scenario.car.saleAfterMonths, 0),
+        saleAfterMonthsEnabled:
+          typeof scenario.car.saleAfterMonthsEnabled === "boolean"
+            ? scenario.car.saleAfterMonthsEnabled
+            : false,
       },
       lease: scenario.lease
         ? {
@@ -915,6 +957,8 @@ function newScenario(kind: ScenarioKind, ui: UiText = UI_TEXT.de, settings: TaxS
     commuteDistanceKmEnabled: false,
     commuteMonthsPerYear: 12,
     commuteMonthsPerYearEnabled: false,
+    commuteDaysPerMonth: 0,
+    commuteDaysPerMonthEnabled: false,
     annualInsuranceGross: kind === "credit-used" ? 1000 : 1200,
     annualInsuranceGrossEnabled: false,
     annualChargingGross: 900,
@@ -923,6 +967,10 @@ function newScenario(kind: ScenarioKind, ui: UiText = UI_TEXT.de, settings: TaxS
     annualMaintenanceGrossEnabled: false,
     annualTiresGross: kind === "credit-used" ? 300 : 250,
     annualTiresGrossEnabled: false,
+    salePriceNet: 0,
+    salePriceNetEnabled: false,
+    saleAfterMonths: 0,
+    saleAfterMonthsEnabled: false,
   };
 
   if (kind === "lease") {
@@ -1422,6 +1470,51 @@ function ScenarioEditor({
                 suffix="EUR"
                 help={ui.help.feesGross}
               />
+              <NumberField
+                label={ui.fields.salePriceNet}
+                value={selected.car.salePriceNet}
+                optionalToggle={{
+                  checked: selected.car.salePriceNetEnabled,
+                  onChange: (salePriceNetEnabled) =>
+                    onUpdateScenario({
+                      ...selected,
+                      car: { ...selected.car, salePriceNetEnabled },
+                    }),
+                }}
+                onChange={(salePriceNet) =>
+                  onUpdateScenario({
+                    ...selected,
+                    car: { ...selected.car, salePriceNet: Math.max(0, salePriceNet) },
+                  })
+                }
+                suffix="EUR"
+                help={ui.help.salePriceNet}
+              />
+              <NumberField
+                label={ui.fields.saleAfterMonths}
+                value={selected.car.saleAfterMonths}
+                optionalToggle={{
+                  checked: selected.car.saleAfterMonthsEnabled,
+                  onChange: (saleAfterMonthsEnabled) =>
+                    onUpdateScenario({
+                      ...selected,
+                      car: { ...selected.car, saleAfterMonthsEnabled },
+                    }),
+                }}
+                step={1}
+                integer
+                onChange={(saleAfterMonths) =>
+                  onUpdateScenario({
+                    ...selected,
+                    car: {
+                      ...selected.car,
+                      saleAfterMonths: Math.max(0, saleAfterMonths),
+                    },
+                  })
+                }
+                suffix="Monate"
+                help={ui.help.saleAfterMonths}
+              />
             </div>
           ) : null}
         </section>
@@ -1506,6 +1599,31 @@ function ScenarioEditor({
               }
               suffix="Monate"
               help={ui.help.commuteMonthsPerYear}
+            />
+            <NumberField
+              label={ui.fields.commuteDaysPerMonth}
+              value={selected.car.commuteDaysPerMonth}
+              optionalToggle={{
+                checked: selected.car.commuteDaysPerMonthEnabled,
+                onChange: (commuteDaysPerMonthEnabled) =>
+                  onUpdateScenario({
+                    ...selected,
+                    car: { ...selected.car, commuteDaysPerMonthEnabled },
+                  }),
+              }}
+              step={1}
+              integer
+              onChange={(commuteDaysPerMonth) =>
+                onUpdateScenario({
+                  ...selected,
+                  car: {
+                    ...selected.car,
+                    commuteDaysPerMonth: Math.max(0, Math.min(31, commuteDaysPerMonth)),
+                  },
+                })
+              }
+              suffix="Tage"
+              help={ui.help.commuteDaysPerMonth}
             />
             <NumberField
               label={ui.fields.annualInsuranceGross}
