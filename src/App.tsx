@@ -169,6 +169,8 @@ const UI_TEXT = {
       yearAfterTax: "Effektiv nach Steuern",
       yearTaxSaving: "Steuerersparnis",
       afterTaxMonth: "Nach Steuern / Monat",
+      leasingFactor: "Leasingfaktor",
+      averageMonthlyGross: "Ø Vertragskosten / Monat",
       totalGross: "Summe brutto",
       vorsteuer: "Vorsteuer",
       netCash: "Netto-Cashflow",
@@ -390,6 +392,8 @@ const UI_TEXT = {
       yearAfterTax: "After-tax effective",
       yearTaxSaving: "Tax saving",
       afterTaxMonth: "After-tax / month",
+      leasingFactor: "Leasing factor",
+      averageMonthlyGross: "Avg. contract cost / month",
       totalGross: "Total gross",
       vorsteuer: "Input VAT",
       netCash: "Net cash",
@@ -611,6 +615,8 @@ const UI_TEXT = {
       yearAfterTax: "Эффективно после налога",
       yearTaxSaving: "Экономия налога",
       afterTaxMonth: "После налога / мес",
+      leasingFactor: "Лизинговый фактор",
+      averageMonthlyGross: "Средняя стоимость / мес.",
       totalGross: "Итого gross",
       vorsteuer: "Входной НДС",
       netCash: "Net cash",
@@ -1687,9 +1693,10 @@ function CompareModal({
     if (!best || current.afterTaxTotalCost < best.afterTaxTotalCost) return current;
     return best;
   }, undefined)?.id;
+  const scenarioById = new Map(scenarios.map((scenario) => [scenario.id, scenario] as const));
   const totalRows: Array<{
     label: string;
-    render: (result: ScenarioResult) => string;
+    render: (result: ScenarioResult, scenario?: ScenarioInput) => string;
     breakdown?: (result: ScenarioResult) => { note?: string; tooltip: string };
   }> = [
     {
@@ -1709,6 +1716,26 @@ function CompareModal({
           gewstSaving: result.totalGewstSaving / Math.max(1, result.evaluationMonths),
         }),
       }),
+    },
+    {
+      label: ui.compareRows.leasingFactor,
+      render: (_result, scenario) => {
+        if (!scenario || scenario.kind !== "lease" || !scenario.lease || scenario.car.blpGross <= 0) return "–";
+        return pct(scenario.lease.monthlyRateGross / scenario.car.blpGross);
+      },
+    },
+    {
+      label: ui.compareRows.averageMonthlyGross,
+      render: (_result, scenario) => {
+        if (!scenario || scenario.kind !== "lease" || !scenario.lease) return "–";
+        const termMonths = Math.max(1, Math.round(scenario.lease.termMonths || 0));
+        const allInMonthlyGross =
+          (scenario.lease.monthlyRateGross * termMonths +
+            scenario.lease.specialPaymentGross +
+            scenario.lease.feesGross) /
+          termMonths;
+        return eur(allInMonthlyGross);
+      },
     },
     { label: ui.compareRows.totalGross, render: (result) => eur(result.totalGrossCashOut) },
     { label: ui.compareRows.vorsteuer, render: (result) => eur(result.totalVorsteuer) },
@@ -1839,7 +1866,7 @@ function CompareModal({
                     <tr className="totalRow" key={row.label}>
                       <td>{row.label}</td>
                       {results.map((result) => {
-                        const value = row.render(result);
+                        const value = row.render(result, scenarioById.get(result.id));
                         const breakdown = row.breakdown?.(result);
                         return (
                           <td key={result.id}>
