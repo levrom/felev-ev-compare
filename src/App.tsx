@@ -140,6 +140,8 @@ const UI_TEXT = {
     },
     compareRows: {
       year: "Jahr",
+      yearAfterTax: "Effektiv nach Steuern",
+      yearTaxSaving: "Steuerersparnis",
       afterTaxMonth: "Nach Steuern / Monat",
       totalGross: "Summe brutto",
       vorsteuer: "Vorsteuer",
@@ -339,6 +341,8 @@ const UI_TEXT = {
     },
     compareRows: {
       year: "Year",
+      yearAfterTax: "After-tax effective",
+      yearTaxSaving: "Tax saving",
       afterTaxMonth: "After-tax / month",
       totalGross: "Total gross",
       vorsteuer: "Input VAT",
@@ -538,6 +542,8 @@ const UI_TEXT = {
     },
     compareRows: {
       year: "Год",
+      yearAfterTax: "Эффективно после налога",
+      yearTaxSaving: "Экономия налога",
       afterTaxMonth: "После налога / мес",
       totalGross: "Итого gross",
       vorsteuer: "Входной НДС",
@@ -1297,7 +1303,24 @@ function CompareModal({
                       <td>{year}</td>
                       {results.map((result) => {
                         const item = result.years[year - 1];
-                        return <td key={result.id}>{item ? eur(item.afterTaxCost) : "–"}</td>;
+                        return (
+                          <td key={result.id}>
+                            {item ? (
+                              <div className="yearCell">
+                                <div className="yearCellPrimary">
+                                  <span>{ui.compareRows.yearAfterTax}</span>
+                                  <strong>{eur(item.afterTaxCost)}</strong>
+                                </div>
+                                <div className="yearCellSecondary">
+                                  <span>{ui.compareRows.yearTaxSaving}</span>
+                                  <strong>{eur(item.totalTaxSaving)}</strong>
+                                </div>
+                              </div>
+                            ) : (
+                              "–"
+                            )}
+                          </td>
+                        );
                       })}
                     </tr>
                   ))}
