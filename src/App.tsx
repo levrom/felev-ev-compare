@@ -25,6 +25,8 @@ import {
   type VatMode,
 } from "./lib/calculator";
 import { DEFAULT_SCENARIOS } from "./lib/defaults";
+import { CompareModal as CompareModalView } from "./components/compare-modal";
+import type { ScenarioResult } from "./components/compare-modal";
 import {
   BreakdownValue,
   InlineToggleField,
@@ -39,8 +41,7 @@ import {
   formatTaxNote,
   taxBreakdownTooltip,
 } from "./components/fields";
-
-type ScenarioResult = ReturnType<typeof calculateScenario>;
+import { ScenarioEditor as ScenarioEditorView } from "./components/scenario-editor";
 type LanguageCode = "de" | "en" | "ru";
 
 type AppState = {
@@ -49,6 +50,8 @@ type AppState = {
   settings: TaxSettings;
   language: LanguageCode;
 };
+
+export type UiText = Widen<(typeof UI_TEXT)["de"]>;
 
 type PrivateUseMode = "auto-bev" | "fixed-rate";
 type LegacyScenarioInput = Omit<ScenarioInput, "lease" | "credit"> & {
@@ -742,8 +745,6 @@ type Widen<T> = T extends string
     : T extends (...args: never[]) => unknown
       ? T
       : { [K in keyof T]: Widen<T[K]> };
-
-type UiText = Widen<(typeof UI_TEXT)["de"]>;
 
 const STORAGE_KEY = "gmbh-ev-calculator-state-v1";
 
@@ -2203,7 +2204,7 @@ export default function App() {
 
         <section className="content">
           {selected ? (
-            <ScenarioEditor
+            <ScenarioEditorView
               selected={selected}
               selectedResult={selectedResult}
               onUpdateScenario={updateScenario}
@@ -2225,7 +2226,7 @@ export default function App() {
         ui={ui}
       />
 
-      <CompareModal
+      <CompareModalView
         open={compareOpen}
         scenarios={state.scenarios}
         results={results}
