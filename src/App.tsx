@@ -1,9 +1,11 @@
-import { useEffect, useId, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type ChangeEvent, type ReactNode } from "react";
 import {
   BarChart3,
   Copy,
   CircleHelp,
+  Download,
   Plus,
+  Upload,
   Settings2,
   Trash2,
   X,
@@ -41,6 +43,13 @@ type LegacyScenarioInput = Omit<ScenarioInput, "lease" | "credit"> & {
   credit?: CreditInput & { otherAnnualGewstAddbacks?: number };
 };
 
+type AppStateExportPayload = {
+  app: "gmbh-ev-compare";
+  version: 1;
+  exportedAt: string;
+  state: AppState;
+};
+
 const UI_TEXT = {
   de: {
     appName: "GmbH EV Vergleich",
@@ -53,6 +62,8 @@ const UI_TEXT = {
     sidebar: {
       taxSettings: "Steuern",
       compare: "Vergleichen",
+      exportJson: "JSON exportieren",
+      importJson: "JSON importieren",
       addLease: "Leasing",
       addCreditNew: "Kredit neu",
       addCreditUsed: "Kredit gebraucht",
@@ -131,6 +142,9 @@ const UI_TEXT = {
     compareModes: {
       year: "Jahre",
       month: "Monate",
+    },
+    messages: {
+      invalidImport: "Ungültige JSON-Datei.",
     },
     priceModes: {
       gross: "Brutto",
@@ -263,6 +277,8 @@ const UI_TEXT = {
     sidebar: {
       taxSettings: "Tax Settings",
       compare: "Compare",
+      exportJson: "Export JSON",
+      importJson: "Import JSON",
       addLease: "Lease",
       addCreditNew: "New loan",
       addCreditUsed: "Used loan",
@@ -341,6 +357,9 @@ const UI_TEXT = {
     compareModes: {
       year: "Years",
       month: "Months",
+    },
+    messages: {
+      invalidImport: "Invalid JSON file.",
     },
     priceModes: {
       gross: "Gross",
@@ -473,6 +492,8 @@ const UI_TEXT = {
     sidebar: {
       taxSettings: "Налоговые настройки",
       compare: "Сравнение",
+      exportJson: "Экспорт JSON",
+      importJson: "Импорт JSON",
       addLease: "Лизинг",
       addCreditNew: "Кредит новый",
       addCreditUsed: "Кредит б/у",
@@ -551,6 +572,9 @@ const UI_TEXT = {
     compareModes: {
       year: "Годы",
       month: "Месяцы",
+    },
+    messages: {
+      invalidImport: "Некорректный JSON-файл.",
     },
     priceModes: {
       gross: "Брутто",
@@ -704,6 +728,10 @@ function finiteNumber(value: unknown, fallback: number) {
 function currentMonthKey() {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function currentDateStamp() {
+  return new Date().toISOString().slice(0, 10);
 }
 
 function normalizeMonthKey(value: unknown, fallback = currentMonthKey()) {
@@ -966,71 +994,74 @@ function TooltipButton({ help, label }: { help: string; label: string }) {
   );
 }
 
-function loadAppState(): AppState {
-  if (typeof window === "undefined") return DEFAULT_APP_STATE;
+function extractAppStateInput(raw: unknown): Partial<AppState> {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
+  const candidate = raw as { state?: unknown };
+  if (candidate.state && typeof candidate.state === "object" && !Array.isArray(candidate.state)) {
+    return candidate.state as Partial<AppState>;
+  }
+  return raw as Partial<AppState>;
+}
 
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return DEFAULT_APP_STATE;
+function normalizeAppStateFromInput(raw: unknown): AppState {
+  const parsed = extractAppStateInput(raw);
 
-    const parsed = JSON.parse(raw) as Partial<AppState>;
-    const scenarios: LegacyScenarioInput[] =
-      Array.isArray(parsed.scenarios) && parsed.scenarios.length > 0
-        ? (parsed.scenarios as LegacyScenarioInput[])
-        : (DEFAULT_SCENARIOS as LegacyScenarioInput[]);
-    const legacyOtherGewstAddbacks = scenarios
-      .map((scenario) => scenario.lease?.otherAnnualGewstAddbacks ?? scenario.credit?.otherAnnualGewstAddbacks)
-      .find((value): value is number => typeof value === "number" && value > 0);
-    const parsedSettings = parsed.settings as Partial<TaxSettings> | undefined;
-    const parsedOtherGewstAddbacks = finiteNumber(parsedSettings?.otherAnnualGewstAddbacks, Number.NaN);
-    const selectedScenario =
-      typeof parsed.selectedId === "string"
-        ? scenarios.find((item) => item.id === parsed.selectedId) ?? scenarios[0]
-        : scenarios[0];
-    const settings = {
-      ...DEFAULT_TAX_SETTINGS,
-      ...(parsedSettings ?? {}),
-      baseAnnualProfit: finiteNumber(parsedSettings?.baseAnnualProfit, DEFAULT_TAX_SETTINGS.baseAnnualProfit),
-      corporationTaxRate: finiteNumber(parsedSettings?.corporationTaxRate, DEFAULT_TAX_SETTINGS.corporationTaxRate),
-      solidarityRate: finiteNumber(parsedSettings?.solidarityRate, DEFAULT_TAX_SETTINGS.solidarityRate),
-      gewstMeasureRate: finiteNumber(parsedSettings?.gewstMeasureRate, DEFAULT_TAX_SETTINGS.gewstMeasureRate),
-      berlinHebesatz: finiteNumber(parsedSettings?.berlinHebesatz, DEFAULT_TAX_SETTINGS.berlinHebesatz),
-      gewstAddbackAllowance: finiteNumber(
-        parsedSettings?.gewstAddbackAllowance,
-        DEFAULT_TAX_SETTINGS.gewstAddbackAllowance,
-      ),
-      otherAnnualGewstAddbacks: Number.isFinite(parsedOtherGewstAddbacks)
-        ? parsedOtherGewstAddbacks
-        : (legacyOtherGewstAddbacks ?? DEFAULT_TAX_SETTINGS.otherAnnualGewstAddbacks),
-      vatRate: finiteNumber(
-        parsedSettings?.vatRate,
-        finiteNumber(selectedScenario?.car?.vatRate, DEFAULT_TAX_SETTINGS.vatRate),
-      ),
-      usedVatMode:
-        parsedSettings?.usedVatMode === "regular" || parsedSettings?.usedVatMode === "none"
-          ? parsedSettings.usedVatMode
-          : (selectedScenario?.car?.vatMode ?? DEFAULT_TAX_SETTINGS.usedVatMode),
-      afaYears: Math.max(
-        1,
-        Math.round(
-          finiteNumber(
-            parsedSettings?.afaYears,
-            finiteNumber(selectedScenario?.car?.afaYears, DEFAULT_TAX_SETTINGS.afaYears),
-          ),
+  const scenarios: LegacyScenarioInput[] =
+    Array.isArray(parsed.scenarios) && parsed.scenarios.length > 0
+      ? (parsed.scenarios as LegacyScenarioInput[])
+      : (DEFAULT_SCENARIOS as LegacyScenarioInput[]);
+  const legacyOtherGewstAddbacks = scenarios
+    .map((scenario) => scenario.lease?.otherAnnualGewstAddbacks ?? scenario.credit?.otherAnnualGewstAddbacks)
+    .find((value): value is number => typeof value === "number" && value > 0);
+  const parsedSettings = parsed.settings as Partial<TaxSettings> | undefined;
+  const parsedOtherGewstAddbacks = finiteNumber(parsedSettings?.otherAnnualGewstAddbacks, Number.NaN);
+  const selectedScenario =
+    typeof parsed.selectedId === "string"
+      ? scenarios.find((item) => item.id === parsed.selectedId) ?? scenarios[0]
+      : scenarios[0];
+  const settings = {
+    ...DEFAULT_TAX_SETTINGS,
+    ...(parsedSettings ?? {}),
+    baseAnnualProfit: finiteNumber(parsedSettings?.baseAnnualProfit, DEFAULT_TAX_SETTINGS.baseAnnualProfit),
+    corporationTaxRate: finiteNumber(parsedSettings?.corporationTaxRate, DEFAULT_TAX_SETTINGS.corporationTaxRate),
+    solidarityRate: finiteNumber(parsedSettings?.solidarityRate, DEFAULT_TAX_SETTINGS.solidarityRate),
+    gewstMeasureRate: finiteNumber(parsedSettings?.gewstMeasureRate, DEFAULT_TAX_SETTINGS.gewstMeasureRate),
+    berlinHebesatz: finiteNumber(parsedSettings?.berlinHebesatz, DEFAULT_TAX_SETTINGS.berlinHebesatz),
+    gewstAddbackAllowance: finiteNumber(
+      parsedSettings?.gewstAddbackAllowance,
+      DEFAULT_TAX_SETTINGS.gewstAddbackAllowance,
+    ),
+    otherAnnualGewstAddbacks: Number.isFinite(parsedOtherGewstAddbacks)
+      ? parsedOtherGewstAddbacks
+      : (legacyOtherGewstAddbacks ?? DEFAULT_TAX_SETTINGS.otherAnnualGewstAddbacks),
+    vatRate: finiteNumber(
+      parsedSettings?.vatRate,
+      finiteNumber(selectedScenario?.car?.vatRate, DEFAULT_TAX_SETTINGS.vatRate),
+    ),
+    usedVatMode:
+      parsedSettings?.usedVatMode === "regular" || parsedSettings?.usedVatMode === "none"
+        ? parsedSettings.usedVatMode
+        : (selectedScenario?.car?.vatMode ?? DEFAULT_TAX_SETTINGS.usedVatMode),
+    afaYears: Math.max(
+      1,
+      Math.round(
+        finiteNumber(
+          parsedSettings?.afaYears,
+          finiteNumber(selectedScenario?.car?.afaYears, DEFAULT_TAX_SETTINGS.afaYears),
         ),
       ),
-      comparisonStartMonth: normalizeMonthKey(
-        parsedSettings?.comparisonStartMonth,
-        DEFAULT_TAX_SETTINGS.comparisonStartMonth,
-      ),
-    };
-    const selectedId =
-      typeof parsed.selectedId === "string" &&
-      scenarios.some((item) => item.id === parsed.selectedId)
-        ? parsed.selectedId
-        : scenarios[0].id;
+    ),
+    comparisonStartMonth: normalizeMonthKey(
+      parsedSettings?.comparisonStartMonth,
+      DEFAULT_TAX_SETTINGS.comparisonStartMonth,
+    ),
+  };
+  const selectedId =
+    typeof parsed.selectedId === "string" && scenarios.some((item) => item.id === parsed.selectedId)
+      ? parsed.selectedId
+      : scenarios[0].id;
 
-    const normalizedScenarios = scenarios.map((scenario) => ({
+  const normalizedScenarios = scenarios.map((scenario) => ({
       ...scenario,
       car: {
         ...scenario.car,
@@ -1115,12 +1146,21 @@ function loadAppState(): AppState {
         : undefined,
     }));
 
-    return {
-      scenarios: normalizedScenarios,
-      selectedId,
-      settings,
-      language: normalizeLanguage(parsed.language),
-    };
+  return {
+    scenarios: normalizedScenarios,
+    selectedId,
+    settings,
+    language: normalizeLanguage(parsed.language),
+  };
+}
+
+function loadAppState(): AppState {
+  if (typeof window === "undefined") return DEFAULT_APP_STATE;
+
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (!raw) return DEFAULT_APP_STATE;
+    return normalizeAppStateFromInput(JSON.parse(raw));
   } catch {
     return DEFAULT_APP_STATE;
   }
@@ -1980,6 +2020,7 @@ export default function App() {
   const [state, setState] = useState<AppState>(loadAppState);
   const [taxSettingsOpen, setTaxSettingsOpen] = useState(false);
   const [compareOpen, setCompareOpen] = useState(false);
+  const importInputRef = useRef<HTMLInputElement | null>(null);
   const ui = UI_TEXT[state.language];
 
   useEffect(() => {
@@ -2056,6 +2097,36 @@ export default function App() {
     }));
   }
 
+  function exportStateAsJson() {
+    const payload: AppStateExportPayload = {
+      app: "gmbh-ev-compare",
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      state,
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `gmbh-ev-compare-${currentDateStamp()}.json`;
+    anchor.click();
+    setTimeout(() => URL.revokeObjectURL(url), 0);
+  }
+
+  async function importStateFromJson(event: ChangeEvent<HTMLInputElement>) {
+    const input = event.currentTarget;
+    const file = input.files?.[0];
+    input.value = "";
+    if (!file) return;
+
+    try {
+      const parsed = JSON.parse(await file.text());
+      setState(normalizeAppStateFromInput(parsed));
+    } catch {
+      window.alert(ui.messages.invalidImport);
+    }
+  }
+
   function addScenario(kind: ScenarioKind) {
     const next = newScenario(kind, ui, state.settings);
     setState((current) => ({
@@ -2106,7 +2177,22 @@ export default function App() {
             <button className="primary" onClick={() => setCompareOpen(true)}>
               <BarChart3 size={16} /> {ui.sidebar.compare}
             </button>
+            <button onClick={exportStateAsJson}>
+              <Download size={16} /> {ui.sidebar.exportJson}
+            </button>
+            <button onClick={() => importInputRef.current?.click()}>
+              <Upload size={16} /> {ui.sidebar.importJson}
+            </button>
           </div>
+          <input
+            ref={importInputRef}
+            className="fileInput"
+            type="file"
+            accept=".json,application/json"
+            onChange={importStateFromJson}
+            tabIndex={-1}
+            aria-hidden="true"
+          />
 
           <div className="scenarioList">
             {state.scenarios.map((scenario) => {

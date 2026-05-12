@@ -71,6 +71,10 @@ button:disabled {
   margin-bottom: 10px;
 }
 
+.fileInput {
+  display: none;
+}
+
 .langButton {
   min-width: 34px;
   min-height: 24px;
