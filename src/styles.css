@@ -903,6 +903,20 @@ button:disabled {
   margin-left: auto;
 }
 
+.compareHeaderCell {
+  display: grid;
+  gap: 4px;
+  justify-items: end;
+}
+
+.compareHeaderCell span {
+  font-weight: 700;
+}
+
+.compareHeaderCell .bestScenarioName {
+  color: #0f7a71;
+}
+
 .compareUnifiedTable tfoot td {
   background: #fafaf9;
   font-weight: 400;

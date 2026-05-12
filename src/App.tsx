@@ -176,6 +176,7 @@ const UI_TEXT = {
       gewstAddbackRate: "GewSt-Hinzurechnungsquote",
       taxSaving: "Steuerersparnis",
       benefitPa: "Privatnutzung p.a.",
+      best: "Niedrigste Gesamtkosten",
     },
     modals: {
       compareDescription: "Vergleich nach Jahren und Summen je Szenario.",
@@ -396,6 +397,7 @@ const UI_TEXT = {
       gewstAddbackRate: "GewSt add-back rate",
       taxSaving: "Tax saving",
       benefitPa: "Benefit p.a.",
+      best: "Lowest total cost",
     },
     modals: {
       compareDescription: "Yearly comparison and scenario totals.",
@@ -616,6 +618,7 @@ const UI_TEXT = {
       gewstAddbackRate: "Доля доплаты GewSt",
       taxSaving: "Экономия налога",
       benefitPa: "Выгода в год",
+      best: "Минимальная итоговая стоимость",
     },
     modals: {
       compareDescription: "Сравнение по годам и итоговые значения по сценариям.",
@@ -1549,6 +1552,10 @@ function CompareModal({
   const maxMonths = Math.max(...results.map((result) => result.months.length), 0);
   const rowCount = compareMode === "year" ? maxYears : maxMonths;
   const comparisonStartMonthKey = normalizeMonthKey(comparisonStartMonth);
+  const bestResultId = results.reduce<ScenarioResult | undefined>((best, current) => {
+    if (!best || current.afterTaxTotalCost < best.afterTaxTotalCost) return current;
+    return best;
+  }, undefined)?.id;
   const totalRows: Array<{
     label: string;
     render: (result: ScenarioResult) => string;
@@ -1639,9 +1646,18 @@ function CompareModal({
                 <thead>
                   <tr>
                     <th>{compareMode === "year" ? ui.compareRows.year : ui.compareRows.month}</th>
-                    {scenarios.map((scenario) => (
-                      <th key={scenario.id}>{scenario.car.name}</th>
-                    ))}
+                    {results.map((result) => {
+                      const scenario = scenarios.find((item) => item.id === result.id);
+                      return (
+                        <th key={result.id}>
+                          <div className="compareHeaderCell">
+                            <span className={result.id === bestResultId ? "bestScenarioName" : undefined}>
+                              {scenario?.car.name ?? result.label}
+                            </span>
+                          </div>
+                        </th>
+                      );
+                    })}
                   </tr>
                 </thead>
                 <tbody>
