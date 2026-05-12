@@ -181,8 +181,8 @@ describe("scenario calculations", () => {
       ...DEFAULT_TAX_SETTINGS,
       otherAnnualGewstAddbacks: 199000,
     });
-    expect(result.years[0].gewstAddbackBase).toBeCloseTo(12000);
-    expect(result.years[0].gewstAddback).toBeCloseTo(2750);
+    expect(result.years[0].gewstAddbackBase).toBeCloseTo(24000);
+    expect(result.years[0].gewstAddback).toBeCloseTo(5750);
   });
 
   it("uses the legal BEV private-use rate automatically", () => {

@@ -127,7 +127,7 @@ deductibleExpense = monatlicheRateNetto * Monate + SonderzahlungNetto + laufende
 GewSt-Hinzurechnung beim Leasing:
 
 ```text
-gewstAddbackBase = leasePaymentNet * 10%
+gewstAddbackBase = leasePaymentNet * 20%
 gewstAddback = Anwendung des allgemeinen GewSt-Freibetrags und 25% Hinzurechnung auf den übersteigenden Anteil
 ```
 

@@ -548,7 +548,7 @@ function calculateLeaseScenario(
     const grossCashOut = monthly.gross * months + firstYearGross + runningGross;
     const vorsteuer = monthly.vat * months + firstYearVat + runningVat;
     const deductibleExpense = monthly.net * months + firstYearNet + runningNet;
-    const gewstAddbackBase = leasePaymentNet * 0.1;
+    const gewstAddbackBase = leasePaymentNet * 0.2;
     const addback = gewstAddback(gewstAddbackBase, settings);
     const privateUseVat = privateUse.privateUseVatAnnual * (months / 12);
     const taxableProfitAfterCar =
