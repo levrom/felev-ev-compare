@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import {
   BarChart3,
+  ClipboardPaste,
   Download,
   Plus,
   Upload,
@@ -24,6 +25,7 @@ import {
 import { DEFAULT_SCENARIOS } from "./lib/defaults";
 import { CompareModal as CompareModalView } from "./components/compare-modal";
 import type { ScenarioResult } from "./components/compare-modal";
+import { ScenarioImportModal } from "./components/scenario-import-modal";
 import { currentDateStamp, formatMonthKey, normalizeMonthKey } from "./lib/dates";
 import { scenarioTitle } from "./lib/scenario";
 import {
@@ -65,6 +67,8 @@ type AppStateExportPayload = {
   state: AppState;
 };
 
+type ImportedScenarioResult = { ok: true } | { ok: false; error: string };
+
 const UI_TEXT = {
   de: {
     appName: "GmbH EV Vergleich",
@@ -78,6 +82,7 @@ const UI_TEXT = {
       taxSettings: "Steuern",
       compare: "Vergleichen",
       exportJson: "JSON exportieren",
+      insertScenario: "Szenario einfügen",
       importJson: "JSON importieren",
       addLease: "Leasing",
       addCreditNew: "Kredit neu",
@@ -166,6 +171,7 @@ const UI_TEXT = {
     },
     messages: {
       invalidImport: "Ungültige JSON-Datei.",
+      invalidScenarioImport: "Ungültiges Szenario-JSON.",
     },
     priceModes: {
       gross: "Brutto",
@@ -199,6 +205,12 @@ const UI_TEXT = {
     },
     modals: {
       compareDescription: "Vergleich nach Jahren und Summen je Szenario.",
+      insertScenario: "Szenario einfügen",
+      insertScenarioDescription: "JSON für ein einzelnes Szenario einfügen. Das Szenario wird zur Liste hinzugefügt.",
+      insertScenarioPlaceholder: "Hier das JSON eines einzelnen Szenarios einfügen.",
+      closeScenarioImport: "Szenario-JSON schließen",
+      exampleLeaseJson: "Beispiel Leasing JSON",
+      exampleCreditJson: "Beispiel Kredit JSON",
       closeTaxSettings: "Steuereinstellungen schließen",
       closeCompare: "Vergleich schließen",
       closeScenario: "Szenario schließen",
@@ -306,6 +318,7 @@ const UI_TEXT = {
       taxSettings: "Tax Settings",
       compare: "Compare",
       exportJson: "Export JSON",
+      insertScenario: "Insert scenario",
       importJson: "Import JSON",
       addLease: "Lease",
       addCreditNew: "New loan",
@@ -394,6 +407,7 @@ const UI_TEXT = {
     },
     messages: {
       invalidImport: "Invalid JSON file.",
+      invalidScenarioImport: "Invalid scenario JSON.",
     },
     priceModes: {
       gross: "Gross",
@@ -427,6 +441,12 @@ const UI_TEXT = {
     },
     modals: {
       compareDescription: "Yearly comparison and scenario totals.",
+      insertScenario: "Insert scenario",
+      insertScenarioDescription: "Paste JSON for one scenario. The scenario will be added to the list.",
+      insertScenarioPlaceholder: "Paste a single scenario JSON object here.",
+      closeScenarioImport: "Close scenario JSON",
+      exampleLeaseJson: "Lease example JSON",
+      exampleCreditJson: "Credit example JSON",
       closeTaxSettings: "Close tax settings",
       closeCompare: "Close compare",
       closeScenario: "Close scenario",
@@ -534,6 +554,7 @@ const UI_TEXT = {
       taxSettings: "Налоговые настройки",
       compare: "Сравнение",
       exportJson: "Экспорт JSON",
+      insertScenario: "Вставить сценарий",
       importJson: "Импорт JSON",
       addLease: "Лизинг",
       addCreditNew: "Кредит новый",
@@ -622,6 +643,7 @@ const UI_TEXT = {
     },
     messages: {
       invalidImport: "Некорректный JSON-файл.",
+      invalidScenarioImport: "Некорректный JSON сценария.",
     },
     priceModes: {
       gross: "Брутто",
@@ -655,6 +677,12 @@ const UI_TEXT = {
     },
     modals: {
       compareDescription: "Сравнение по годам и итоговые значения по сценариям.",
+      insertScenario: "Вставить сценарий",
+      insertScenarioDescription: "Вставь JSON одного сценария. Он будет добавлен в список.",
+      insertScenarioPlaceholder: "Вставь JSON одного сценария сюда.",
+      closeScenarioImport: "Закрыть JSON сценария",
+      exampleLeaseJson: "Пример JSON лизинга",
+      exampleCreditJson: "Пример JSON кредита",
       closeTaxSettings: "Закрыть настройки",
       closeCompare: "Закрыть сравнение",
       closeScenario: "Закрыть сценарий",
@@ -954,6 +982,54 @@ function loadAppState(): AppState {
   }
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function stripJsonFences(text: string): string {
+  const trimmed = text.trim();
+  const fenced = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
+  return fenced ? fenced[1].trim() : trimmed;
+}
+
+function extractSingleScenarioPayload(raw: unknown): unknown | null {
+  if (!isRecord(raw)) return null;
+
+  if ("kind" in raw && "car" in raw) {
+    return raw;
+  }
+
+  if (Array.isArray(raw.scenarios)) {
+    return raw.scenarios.length === 1 ? raw.scenarios[0] : null;
+  }
+
+  if (isRecord(raw.state) && Array.isArray(raw.state.scenarios)) {
+    return raw.state.scenarios.length === 1 ? raw.state.scenarios[0] : null;
+  }
+
+  return null;
+}
+
+function normalizeImportedScenario(raw: unknown, settings: TaxSettings, language: LanguageCode): ScenarioInput | null {
+  const payload = extractSingleScenarioPayload(raw);
+  if (!isRecord(payload)) return null;
+
+  const normalized = normalizeAppStateFromInput({
+    scenarios: [payload],
+    selectedId: typeof payload.id === "string" ? payload.id : undefined,
+    settings,
+    language,
+  });
+
+  const scenario = normalized.scenarios[0];
+  if (!scenario) return null;
+
+  return {
+    ...scenario,
+    id: crypto.randomUUID(),
+  };
+}
+
 function newScenario(kind: ScenarioKind, ui: UiText = UI_TEXT.de, settings: TaxSettings = DEFAULT_TAX_SETTINGS): ScenarioInput {
   const base: CarInput = {
     name:
@@ -1140,6 +1216,7 @@ export default function App() {
   const [state, setState] = useState<AppState>(loadAppState);
   const [taxSettingsOpen, setTaxSettingsOpen] = useState(false);
   const [compareOpen, setCompareOpen] = useState(false);
+  const [scenarioImportOpen, setScenarioImportOpen] = useState(false);
   const importInputRef = useRef<HTMLInputElement | null>(null);
   const ui = UI_TEXT[state.language];
 
@@ -1148,7 +1225,7 @@ export default function App() {
   }, [state]);
 
   useEffect(() => {
-    if (taxSettingsOpen || compareOpen) {
+    if (taxSettingsOpen || compareOpen || scenarioImportOpen) {
       const { overflow, overscrollBehavior } = document.body.style;
       document.body.style.overflow = "hidden";
       document.body.style.overscrollBehavior = "none";
@@ -1161,20 +1238,21 @@ export default function App() {
     document.body.style.overflow = "";
     document.body.style.overscrollBehavior = "";
     return undefined;
-  }, [taxSettingsOpen, compareOpen]);
+  }, [taxSettingsOpen, compareOpen, scenarioImportOpen]);
 
   useEffect(() => {
-    if (!taxSettingsOpen && !compareOpen) return undefined;
+    if (!taxSettingsOpen && !compareOpen && !scenarioImportOpen) return undefined;
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
       setTaxSettingsOpen(false);
       setCompareOpen(false);
+      setScenarioImportOpen(false);
     };
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [taxSettingsOpen, compareOpen]);
+  }, [taxSettingsOpen, compareOpen, scenarioImportOpen]);
 
   const selected = state.scenarios.find((scenario) => scenario.id === state.selectedId) ?? state.scenarios[0];
   const results = useMemo(
@@ -1188,6 +1266,21 @@ export default function App() {
       : selected && Number.isFinite(selected.car.startYear) && Number.isFinite(selected.car.startMonth)
         ? formatMonthKey(selected.car.startYear, selected.car.startMonth)
         : state.settings.comparisonStartMonth;
+  const scenarioImportExamples = useMemo(
+    () => [
+      {
+        label: ui.modals.exampleLeaseJson,
+        filename: "lease-example.json",
+        content: JSON.stringify(newScenario("lease", ui, state.settings), null, 2),
+      },
+      {
+        label: ui.modals.exampleCreditJson,
+        filename: "credit-example.json",
+        content: JSON.stringify(newScenario("credit-new", ui, state.settings), null, 2),
+      },
+    ],
+    [state.settings, ui],
+  );
 
   function updateScenario(next: ScenarioInput) {
     setState((current) => ({
@@ -1253,6 +1346,26 @@ export default function App() {
     }
   }
 
+  function importScenarioFromText(rawText: string): ImportedScenarioResult {
+    try {
+      const parsed = JSON.parse(stripJsonFences(rawText));
+      const scenario = normalizeImportedScenario(parsed, state.settings, state.language);
+      if (!scenario) {
+        return { ok: false, error: ui.messages.invalidScenarioImport };
+      }
+
+      setState((current) => ({
+        ...current,
+        scenarios: [...current.scenarios, scenario],
+        selectedId: scenario.id,
+      }));
+
+      return { ok: true };
+    } catch {
+      return { ok: false, error: ui.messages.invalidScenarioImport };
+    }
+  }
+
   function addScenario(kind: ScenarioKind) {
     const next = newScenario(kind, ui, state.settings);
     setState((current) => ({
@@ -1303,9 +1416,16 @@ export default function App() {
             <button className="primary" onClick={() => setCompareOpen(true)}>
               <BarChart3 size={16} /> {ui.sidebar.compare}
             </button>
+          </div>
+          <div className="buttonGrid sidebarActions sidebarTopActions">
             <button onClick={exportStateAsJson}>
               <Download size={16} /> {ui.sidebar.exportJson}
             </button>
+            <button className="primary" onClick={() => setScenarioImportOpen(true)}>
+              <ClipboardPaste size={16} /> {ui.sidebar.insertScenario}
+            </button>
+          </div>
+          <div className="buttonGrid sidebarActions sidebarSecondaryActions">
             <button onClick={() => importInputRef.current?.click()}>
               <Upload size={16} /> {ui.sidebar.importJson}
             </button>
@@ -1407,6 +1527,14 @@ export default function App() {
         comparisonStartMonth={selectedComparisonStartMonth}
         onClose={() => setCompareOpen(false)}
         ui={ui}
+      />
+
+      <ScenarioImportModal
+        open={scenarioImportOpen}
+        ui={ui}
+        examples={scenarioImportExamples}
+        onClose={() => setScenarioImportOpen(false)}
+        onImport={importScenarioFromText}
       />
     </>
   );
