@@ -254,11 +254,25 @@ export function ScenarioEditor({
           ) : selected.credit ? (
             <div className="formGrid">
               <NumberField
+                label={ui.fields.offeredMonthlyPaymentGross}
+                value={selected.credit.offeredMonthlyPaymentGross}
+                onChange={(offeredMonthlyPaymentGross) =>
+                  onUpdateScenario({
+                    ...selected,
+                    credit: mergeCredit(selected.credit!, {
+                      offeredMonthlyPaymentGross: Math.max(0, offeredMonthlyPaymentGross),
+                    }),
+                  })
+                }
+                suffix="EUR mtl. geschätzt"
+                help={ui.help.offeredMonthlyPaymentGross}
+              />
+              <NumberField
                 label={ui.fields.monthlyPaymentGross}
                 value={selectedResult?.monthlyPaymentGross ?? 0}
                 disabled
                 onChange={() => undefined}
-                suffix="EUR mtl. geschätzt"
+                suffix="EUR mtl. berechnet"
                 help={ui.help.monthlyPaymentGross}
               />
               <NumberField

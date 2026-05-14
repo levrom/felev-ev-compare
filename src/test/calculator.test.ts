@@ -80,6 +80,7 @@ describe("scenario calculations", () => {
         balloonGross: 20000,
         acquisitionCostsGross: 0,
         feesGross: 0,
+        offeredMonthlyPaymentGross: 0,
       },
     };
 
@@ -108,6 +109,7 @@ describe("scenario calculations", () => {
         balloonGross: 10000,
         acquisitionCostsGross: 0,
         feesGross: 0,
+        offeredMonthlyPaymentGross: 0,
       },
     };
 
@@ -247,6 +249,7 @@ describe("scenario calculations", () => {
         balloonGross: 0,
         acquisitionCostsGross: 0,
         feesGross: 0,
+        offeredMonthlyPaymentGross: 0,
       },
     };
 
@@ -273,6 +276,7 @@ describe("scenario calculations", () => {
         balloonGross: 0,
         acquisitionCostsGross: 0,
         feesGross: 0,
+        offeredMonthlyPaymentGross: 0,
       },
     };
 
@@ -295,6 +299,7 @@ describe("scenario calculations", () => {
         balloonGross: 20000,
         acquisitionCostsGross: 0,
         feesGross: 0,
+        offeredMonthlyPaymentGross: 0,
       },
     };
 
@@ -321,6 +326,7 @@ describe("scenario calculations", () => {
         balloonGross: 0,
         acquisitionCostsGross: 0,
         feesGross: 0,
+        offeredMonthlyPaymentGross: 0,
       },
     };
 
@@ -386,6 +392,7 @@ describe("scenario calculations", () => {
         balloonGross: 0,
         acquisitionCostsGross: 0,
         feesGross: 0,
+        offeredMonthlyPaymentGross: 0,
       },
     };
 

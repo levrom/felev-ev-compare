@@ -36,6 +36,12 @@ type NumberFieldProps = {
   };
 };
 
+function displayNumberValue(value: number, integer: boolean) {
+  if (!Number.isFinite(value)) return 0;
+  if (integer) return Math.round(value);
+  return Math.round((value + Number.EPSILON) * 100) / 100;
+}
+
 export function NumberField({
   label,
   value,
@@ -78,7 +84,7 @@ export function NumberField({
         <input
           id={inputId}
           type="number"
-          value={Number.isFinite(value) ? value : 0}
+          value={displayNumberValue(value, integer)}
           step={step}
           inputMode={integer ? "numeric" : undefined}
           disabled={isDisabled}

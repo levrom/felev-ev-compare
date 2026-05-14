@@ -89,6 +89,7 @@ export const DEFAULT_SCENARIOS: ScenarioInput[] = [
       balloonGross: 23500,
       acquisitionCostsGross: 990,
       feesGross: 790,
+      offeredMonthlyPaymentGross: 0,
     },
   },
   {
@@ -135,6 +136,7 @@ export const DEFAULT_SCENARIOS: ScenarioInput[] = [
       balloonGross: 14500,
       acquisitionCostsGross: 590,
       feesGross: 490,
+      offeredMonthlyPaymentGross: 0,
     },
   },
 ];

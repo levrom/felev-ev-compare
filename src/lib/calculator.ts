@@ -52,6 +52,7 @@ export type CreditInput = {
   balloonGross: number;
   acquisitionCostsGross: number;
   feesGross: number;
+  offeredMonthlyPaymentGross: number;
 };
 
 export type ScenarioInput = {
@@ -541,6 +542,7 @@ function normalizeScenario(scenario: ScenarioInput): ScenarioInput {
           balloonGross: finiteNumber(scenario.credit.balloonGross, 0),
           acquisitionCostsGross: finiteNumber(scenario.credit.acquisitionCostsGross, 0),
           feesGross: finiteNumber(scenario.credit.feesGross, 0),
+          offeredMonthlyPaymentGross: finiteNumber(scenario.credit.offeredMonthlyPaymentGross, 0),
         }
       : undefined,
   };
