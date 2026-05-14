@@ -254,6 +254,14 @@ export function ScenarioEditor({
           ) : selected.credit ? (
             <div className="formGrid">
               <NumberField
+                label={ui.fields.monthlyPaymentGross}
+                value={selectedResult?.monthlyPaymentGross ?? 0}
+                disabled
+                onChange={() => undefined}
+                suffix="EUR mtl. geschätzt"
+                help={ui.help.monthlyPaymentGross}
+              />
+              <NumberField
                 label={ui.fields.termMonths}
                 value={selected.credit.termMonths}
                 onChange={(termMonths) =>

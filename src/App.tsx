@@ -144,6 +144,7 @@ const UI_TEXT = {
       salePriceMode: "Preisart",
       saleAfterMonths: "Verkauf nach Monaten",
       termMonths: "Laufzeit",
+      monthlyPaymentGross: "Monatliche Rate geschätzt",
       monthlyRateGross: "Rate brutto",
       specialPaymentGross: "Sonderzahlung brutto",
       feesGross: "Gebühren brutto",
@@ -261,6 +262,7 @@ const UI_TEXT = {
       saleAfterMonths:
         "Monat des Verkaufs relativ zum Start. Standard ist das Kreditende; früherer Verkauf wird für die TCO berücksichtigt, wenn er über die Monatszahl aktiviert ist.",
       termMonths: "Laufzeit in Monaten. Sie steuert die zeitliche Verteilung von Zahlungen und Abzügen.",
+      monthlyPaymentGross: "Aus Laufzeit, Anzahlung, Zins und Ballon berechnete Monatsrate. Nur informativ.",
       monthlyRateGross: "Monatliche Leasingrate brutto. Sie fließt in Cashflow, Vorsteuer und den GewSt-Hinzurechnungsanteil ein.",
       specialPaymentGross: "Einmalige Zahlung zu Beginn. Sie erhöht Cashflow und Vorsteuer im ersten Jahr.",
       feesGross: "Zusätzliche Gebühren oder Nebenkosten. Sie erhöhen den Cashflow und können Vorsteuer auslösen.",
@@ -367,6 +369,7 @@ const UI_TEXT = {
       salePriceMode: "Price mode",
       saleAfterMonths: "Sale after months",
       termMonths: "Term",
+      monthlyPaymentGross: "Estimated monthly payment",
       monthlyRateGross: "Gross payment",
       specialPaymentGross: "Upfront payment",
       feesGross: "Fees gross",
@@ -484,6 +487,7 @@ const UI_TEXT = {
       saleAfterMonths:
         "Month of sale relative to the start date. The default is the loan end; if enabled, the calculator uses this month for TCO and the final-year gain.",
       termMonths: "Term in months. It drives the timing of payments and deductions.",
+      monthlyPaymentGross: "Calculated from term, down payment, interest, and balloon. Informational only.",
       monthlyRateGross: "Monthly leasing payment gross. It affects cash out, VAT, and the GewSt add-back base.",
       specialPaymentGross: "One-time upfront payment. It increases first-year cash out and VAT recovery.",
       feesGross: "Additional fees or delivery charges. They increase cash out and may generate VAT recovery.",
@@ -590,6 +594,7 @@ const UI_TEXT = {
       salePriceMode: "Режим цены",
       saleAfterMonths: "Продажа через мес.",
       termMonths: "Срок",
+      monthlyPaymentGross: "Ежемесячный платёж (оценка)",
       monthlyRateGross: "Платёж gross",
       specialPaymentGross: "Первый платёж",
       feesGross: "Комиссии gross",
@@ -707,6 +712,7 @@ const UI_TEXT = {
       saleAfterMonths:
         "Месяц продажи от начала сценария. По умолчанию это конец кредита; если включить поле, он участвует в TCO и в прибыли финального года.",
       termMonths: "Срок договора в месяцах. Он определяет распределение платежей и вычетов.",
+      monthlyPaymentGross: "Рассчитывается из срока, аванса, процента и баллона. Только для справки.",
       monthlyRateGross: "Ежемесячный лизинговый платеж gross. Он влияет на cash flow, НДС и add-back по GewSt.",
       specialPaymentGross: "Разовый платеж в начале договора. Он увеличивает первый год cash out и Vorsteuer.",
       feesGross: "Дополнительные комиссии или расходы. Они увеличивают cash out и могут дать Vorsteuer.",
